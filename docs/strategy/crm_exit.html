@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategy — CRM Exit — Trading Research</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:'Inter',sans-serif;font-size:14px;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}
+a:hover{color:#79c0ff}
+.navbar{background:#161b22;border-bottom:1px solid #30363d;padding:0 24px;display:flex;align-items:center;height:56px;position:sticky;top:0;z-index:100}
+.brand{font-weight:700;font-size:15px;color:#e6edf3;margin-right:32px;letter-spacing:-0.3px}
+.brand span{color:#3fb950}
+.nav-link{color:#8b949e;padding:0 12px;height:56px;display:inline-flex;align-items:center;font-size:13px;font-weight:500;border-bottom:2px solid transparent;transition:color .15s}
+.nav-link:hover{color:#e6edf3}
+.nav-link.active{color:#e6edf3;border-bottom-color:#3fb950}
+.dropdown{position:relative;display:inline-block}
+.dropdown-btn{background:none;border:none;color:#8b949e;font:500 13px 'Inter',sans-serif;padding:0 12px;height:56px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.dropdown-btn:hover{color:#e6edf3}
+.dropdown-menu{display:none;position:absolute;top:56px;left:0;background:#161b22;border:1px solid #30363d;border-radius:6px;min-width:120px;padding:4px 0;z-index:200}
+.dropdown:hover .dropdown-menu{display:block}
+.dropdown-item{display:block;padding:7px 14px;color:#8b949e;font-size:13px}
+.dropdown-item:hover{color:#e6edf3;background:#21262d}
+.container{max-width:1280px;margin:0 auto;padding:32px 24px}
+.page-title{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px}
+.page-sub{color:#8b949e;font-size:13px;margin-bottom:32px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-bottom:32px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#8b949e;margin-bottom:8px}
+.card-value{font-size:28px;font-weight:700;letter-spacing:-1px}
+.card-sub{font-size:12px;color:#8b949e;margin-top:4px}
+.section-title{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #21262d}
+.chart-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:24px;margin-bottom:24px}
+.chart-title{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:4px}
+.chart-sub{font-size:12px;color:#8b949e;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#21262d;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;border-bottom:1px solid #30363d}
+td{padding:10px 12px;border-bottom:1px solid #21262d}
+tr:hover td{background:#1c2128}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
+.badge-red{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.badge-blue{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid rgba(88,166,255,.3)}
+.badge-gray{background:rgba(139,148,158,.15);color:#8b949e;border:1px solid rgba(139,148,158,.3)}
+.insight-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px;margin-bottom:16px}
+.insight-title{font-size:15px;font-weight:600;margin-bottom:8px}
+.insight-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.insight-body{color:#8b949e;font-size:13px;line-height:1.7}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:#21262d;color:#8b949e}
+.impact-high{border-left:3px solid #f85149}
+.impact-medium{border-left:3px solid #f0883e}
+.impact-low{border-left:3px solid #3fb950}
+.rule-block{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:12px;font-size:13px}
+.rule-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#8b949e;margin-bottom:6px}
+.rule-value{color:#e6edf3;line-height:1.6}
+.ticker-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.ticker-btn{padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid #30363d;background:#21262d;color:#8b949e;text-decoration:none}
+.ticker-btn:hover,.ticker-btn.active{background:#388bfd20;border-color:#388bfd;color:#58a6ff}
+footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1px solid #21262d;margin-top:48px}
+@media(max-width:768px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr}.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="brand">Trading<span>Research</span></div>
+  <a href="../index.html" class="nav-link ">Dashboard</a>
+<a href="../strategy/crm_exit.html" class="nav-link active">Strategy</a>
+<a href="../insights/index.html" class="nav-link ">Insights</a>
+
+  <div class="dropdown">
+    <button class="dropdown-btn">Tickers ▾</button>
+    <div class="dropdown-menu"><a href="../tickers/aapl.html" class="dropdown-item">AAPL</a>
+<a href="../tickers/msft.html" class="dropdown-item">MSFT</a>
+<a href="../tickers/googl.html" class="dropdown-item">GOOGL</a>
+<a href="../tickers/amzn.html" class="dropdown-item">AMZN</a>
+<a href="../tickers/nvda.html" class="dropdown-item">NVDA</a>
+<a href="../tickers/meta.html" class="dropdown-item">META</a>
+<a href="../tickers/tsla.html" class="dropdown-item">TSLA</a>
+</div>
+  </div>
+  <div style="margin-left:auto;color:#484f58;font-size:12px">Updated Apr 26, 2026</div>
+</nav>
+<div class="container">
+
+<div class="page-title">CRM Exit Strategy</div>
+<div class="page-sub">Channel Rejection + Momentum Exit · V3.0 · Active</div>
+
+<div class="grid-2">
+  <div>
+    <div class="section-title">Current Rules — V3.0</div>
+    <div class="rule-block"><div class="rule-label">Bias</div><div class="rule-value">1H EMA34 vs EMA50 — 730d seeded, shift(1). EMA34 > EMA50 = BULLISH (longs only). EMA34 < EMA50 = BEARISH (shorts only).</div></div>
+    <div class="rule-block"><div class="rule-label">Entry</div><div class="rule-value">15m candle touches the 1H 34/50 EMA channel (wick or close) AND closes outside in the bias direction. BEARISH: close < min(EMA34,EMA50). BULLISH: close > max(EMA34,EMA50). Requires close to exceed channel edge by at least $0.01.</div></div>
+    <div class="rule-block"><div class="rule-label">Exit</div><div class="rule-value">15m EMA8 crosses EMA21 in the opposite direction of the trade. No other exit condition.</div></div>
+    <div class="rule-block"><div class="rule-label">Session</div><div class="rule-value">CST RTH only — 8:30 AM to 3:00 PM. Partial days (< 20 bars) excluded.</div></div>
+    <div class="rule-block"><div class="rule-label">Options</div><div class="rule-value">ATM put/call. Strike: nearest $5 increment. Expiry: next Friday >= 2 weeks from entry. IV: HV20. Model: Black-Scholes. r=4.5%.</div></div>
+  </div>
+  <div>
+    <div class="section-title">Key Insights</div>
+    <div class="chart-card" style="padding:12px"><div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">💡 Removing the opposite side close exit was the single biggest improvement — win rate jumped from 26% to 65% on TSLA</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">💡 8/21 exit beats 34/50 (holds too long, theta destroys options) and 5/12 (fires too fast, misses continuation)</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">💡 730d seeding for 1H EMAs is required to match TradingView values — 60d seeding causes divergence</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">💡 Thin channels (EMA34/50 width < $0.20) produce consistent noise trades — filter candidate</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">💡 Options amplify stock moves dramatically: 5%+ stock move = 85-94% option gain at 14-17 DTE</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">💡 Stock losers become outsized options losers: -3.5% stock = -64% options. Risk management critical.</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">💡 14-18 DTE at entry is the sweet spot with 8/21 exit timing</div>
+</div>
+    <div class="section-title" style="margin-top:20px">Open Questions</div>
+    <div class="chart-card" style="padding:12px"><div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">❓ Apply channel width filter — what threshold maximises PF?</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">❓ Test on extended data window beyond 60 days</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">❓ GOOGL is a consistent loser — is it the strategy or the ticker?</div>
+<div style="padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#8b949e">❓ MSFT 20% win rate but +390% options — driven by one outlier trade (T15 +552%). Need more data.</div>
+</div>
+  </div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">TSLA Stock PnL — Strategy Version Evolution</div>
+  <div class="chart-sub">Every version tested on the same TSLA 60-day window</div>
+  <div>                            <div id="chart-versions" class="plotly-graph-div" style="height:320px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("chart-versions")) {                    Plotly.newPlot(                        "chart-versions",                        [{"marker":{"color":["#3fb950","#f85149","#f85149","#f85149","#3fb950","#3fb950","#3fb950","#3fb950"]},"name":"Stock PnL %","text":["+8.93%","-2.84%","-2.25%","-1.79%","+5.28%","+11.60%","+3.34%","+14.75%"],"textposition":"outside","x":["1.0","2.0","2.1","2.2","2.3a","2.3b","2.3c","3.0"],"y":[8.93,-2.84,-2.25,-1.79,5.28,11.6,3.34,14.75],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"shapes":[{"line":{"color":"#30363d","width":1},"type":"line","x0":0,"x1":1,"xref":"x domain","y0":0,"y1":0,"yref":"y"}],"yaxis":{"ticksuffix":"%","gridcolor":"#21262d","zerolinecolor":"#30363d"},"xaxis":{"title":{"text":"Version"},"gridcolor":"#21262d","zerolinecolor":"#30363d"},"showlegend":false,"font":{"family":"Inter, sans-serif","color":"#e6edf3","size":12},"margin":{"l":16,"r":16,"t":24,"b":16},"legend":{"bgcolor":"rgba(0,0,0,0)","bordercolor":"rgba(0,0,0,0)"},"paper_bgcolor":"#161b22","plot_bgcolor":"#161b22","height":320},                        {"responsive": true, "displayModeBar": false}                    )                };            </script>        </div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">Exit EMA Comparison (V3.0 entry rules, no opposite side close)</div>
+  <div class="chart-sub">8/21 exit dominates — best stock PnL and by far best options PnL</div>
+  <div>                            <div id="chart-exits" class="plotly-graph-div" style="height:340px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("chart-exits")) {                    Plotly.newPlot(                        "chart-exits",                        [{"marker":{"color":["#3fb950","#3fb950","#3fb950"]},"name":"Stock PnL %","text":["+5.28%","+11.60%","+3.34%"],"textposition":"outside","x":["34\u002f50 only","8\u002f21 only (V3)","5\u002f12 only"],"y":[5.28,11.6,3.34],"type":"bar"},{"marker":{"color":["#da3633","#388bfd","#388bfd"]},"name":"Options PnL %","opacity":0.8,"text":["-17.12%","+178.13%","+57.92%"],"textposition":"outside","x":["34\u002f50 only","8\u002f21 only (V3)","5\u002f12 only"],"y":[-17.12,178.13,57.92],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"shapes":[{"line":{"color":"#30363d","width":1},"type":"line","x0":0,"x1":1,"xref":"x domain","y0":0,"y1":0,"yref":"y"}],"yaxis":{"ticksuffix":"%","gridcolor":"#21262d","zerolinecolor":"#30363d"},"barmode":"group","font":{"family":"Inter, sans-serif","color":"#e6edf3","size":12},"margin":{"l":16,"r":16,"t":24,"b":16},"legend":{"bgcolor":"rgba(0,0,0,0)","bordercolor":"rgba(0,0,0,0)"},"xaxis":{"gridcolor":"#21262d","zerolinecolor":"#30363d"},"paper_bgcolor":"#161b22","plot_bgcolor":"#161b22","height":340},                        {"responsive": true, "displayModeBar": false}                    )                };            </script>        </div>
+</div>
+
+<div class="section-title">Version History</div>
+<div class="chart-card" style="padding:0;overflow:hidden;overflow-x:auto">
+<table>
+  <thead><tr><th>Version</th><th>Name</th><th>Entry</th><th>Exit</th><th>TSLA PnL</th><th>Win%</th><th>Trades</th></tr></thead>
+  <tbody><tr>
+          <td style="font-weight:600">V1.0 </td>
+          <td>Baseline</td>
+          <td style="color:#8b949e;font-size:12px">15m close enters the zone between 1H EMA34 and EMA50 (fresh ...</td>
+          <td style="color:#8b949e;font-size:12px">Opposite 15m EMA34/EMA50 cross</td>
+          <td style="color:#3fb950;font-weight:600">+8.93%</td>
+          <td style="color:#8b949e">66.7%</td>
+          <td style="color:#8b949e">9</td>
+        </tr><tr>
+          <td style="font-weight:600">V2.0 </td>
+          <td>Rejection Entry</td>
+          <td style="color:#8b949e;font-size:12px">15m candle touches channel + closes outside in bias directio...</td>
+          <td style="color:#8b949e;font-size:12px">Opposite side close OR 15m EMA34/50 cross</td>
+          <td style="color:#f85149;font-weight:600">-2.84%</td>
+          <td style="color:#8b949e">26.3%</td>
+          <td style="color:#8b949e">19</td>
+        </tr><tr>
+          <td style="font-weight:600">V2.1 </td>
+          <td>8/21 Exit Test</td>
+          <td style="color:#8b949e;font-size:12px">Same as V2.0...</td>
+          <td style="color:#8b949e;font-size:12px">Opposite side close OR 15m EMA8/21 cross</td>
+          <td style="color:#f85149;font-weight:600">-2.25%</td>
+          <td style="color:#8b949e">41.4%</td>
+          <td style="color:#8b949e">29</td>
+        </tr><tr>
+          <td style="font-weight:600">V2.2 </td>
+          <td>5/12 Exit Test</td>
+          <td style="color:#8b949e;font-size:12px">Same as V2.0...</td>
+          <td style="color:#8b949e;font-size:12px">Opposite side close OR 15m EMA5/12 cross</td>
+          <td style="color:#f85149;font-weight:600">-1.79%</td>
+          <td style="color:#8b949e">37.5%</td>
+          <td style="color:#8b949e">32</td>
+        </tr><tr>
+          <td style="font-weight:600">V2.3a </td>
+          <td>No Opposite Side Close — 34/50 Exit</td>
+          <td style="color:#8b949e;font-size:12px">Same as V2.0...</td>
+          <td style="color:#8b949e;font-size:12px">15m EMA34/50 cross ONLY</td>
+          <td style="color:#3fb950;font-weight:600">+5.28%</td>
+          <td style="color:#8b949e">55.6%</td>
+          <td style="color:#8b949e">9</td>
+        </tr><tr>
+          <td style="font-weight:600">V2.3b </td>
+          <td>No Opposite Side Close — 8/21 Exit</td>
+          <td style="color:#8b949e;font-size:12px">Same as V2.0...</td>
+          <td style="color:#8b949e;font-size:12px">15m EMA8/21 cross ONLY</td>
+          <td style="color:#3fb950;font-weight:600">+11.60%</td>
+          <td style="color:#8b949e">65.0%</td>
+          <td style="color:#8b949e">20</td>
+        </tr><tr>
+          <td style="font-weight:600">V2.3c </td>
+          <td>No Opposite Side Close — 5/12 Exit</td>
+          <td style="color:#8b949e;font-size:12px">Same as V2.0...</td>
+          <td style="color:#8b949e;font-size:12px">15m EMA5/12 cross ONLY</td>
+          <td style="color:#3fb950;font-weight:600">+3.34%</td>
+          <td style="color:#8b949e">52.0%</td>
+          <td style="color:#8b949e">25</td>
+        </tr><tr>
+          <td style="font-weight:600">V3.0 <span class="badge badge-green">Current</span></td>
+          <td>CRM Exit — Locked</td>
+          <td style="color:#8b949e;font-size:12px">15m touch + close outside in bias direction (close > ch_hi +...</td>
+          <td style="color:#8b949e;font-size:12px">15m EMA8/21 cross ONLY — no opposite side close</td>
+          <td style="color:#3fb950;font-weight:600">+14.75%</td>
+          <td style="color:#8b949e">70.0%</td>
+          <td style="color:#8b949e">20</td>
+        </tr></tbody>
+</table>
+</div>
+
+</div>
+<footer>sameerbode.github.io/trading-research · Built with Python + Plotly · Apr 26, 2026</footer>
+</body>
+</html>

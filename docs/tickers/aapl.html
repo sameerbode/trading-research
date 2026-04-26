@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AAPL — Trading Research</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:'Inter',sans-serif;font-size:14px;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}
+a:hover{color:#79c0ff}
+.navbar{background:#161b22;border-bottom:1px solid #30363d;padding:0 24px;display:flex;align-items:center;height:56px;position:sticky;top:0;z-index:100}
+.brand{font-weight:700;font-size:15px;color:#e6edf3;margin-right:32px;letter-spacing:-0.3px}
+.brand span{color:#3fb950}
+.nav-link{color:#8b949e;padding:0 12px;height:56px;display:inline-flex;align-items:center;font-size:13px;font-weight:500;border-bottom:2px solid transparent;transition:color .15s}
+.nav-link:hover{color:#e6edf3}
+.nav-link.active{color:#e6edf3;border-bottom-color:#3fb950}
+.dropdown{position:relative;display:inline-block}
+.dropdown-btn{background:none;border:none;color:#8b949e;font:500 13px 'Inter',sans-serif;padding:0 12px;height:56px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.dropdown-btn:hover{color:#e6edf3}
+.dropdown-menu{display:none;position:absolute;top:56px;left:0;background:#161b22;border:1px solid #30363d;border-radius:6px;min-width:120px;padding:4px 0;z-index:200}
+.dropdown:hover .dropdown-menu{display:block}
+.dropdown-item{display:block;padding:7px 14px;color:#8b949e;font-size:13px}
+.dropdown-item:hover{color:#e6edf3;background:#21262d}
+.container{max-width:1280px;margin:0 auto;padding:32px 24px}
+.page-title{font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px}
+.page-sub{color:#8b949e;font-size:13px;margin-bottom:32px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-bottom:32px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#8b949e;margin-bottom:8px}
+.card-value{font-size:28px;font-weight:700;letter-spacing:-1px}
+.card-sub{font-size:12px;color:#8b949e;margin-top:4px}
+.section-title{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #21262d}
+.chart-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:24px;margin-bottom:24px}
+.chart-title{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:4px}
+.chart-sub{font-size:12px;color:#8b949e;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#21262d;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;border-bottom:1px solid #30363d}
+td{padding:10px 12px;border-bottom:1px solid #21262d}
+tr:hover td{background:#1c2128}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
+.badge-red{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.badge-blue{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid rgba(88,166,255,.3)}
+.badge-gray{background:rgba(139,148,158,.15);color:#8b949e;border:1px solid rgba(139,148,158,.3)}
+.insight-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px;margin-bottom:16px}
+.insight-title{font-size:15px;font-weight:600;margin-bottom:8px}
+.insight-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.insight-body{color:#8b949e;font-size:13px;line-height:1.7}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:#21262d;color:#8b949e}
+.impact-high{border-left:3px solid #f85149}
+.impact-medium{border-left:3px solid #f0883e}
+.impact-low{border-left:3px solid #3fb950}
+.rule-block{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:12px;font-size:13px}
+.rule-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#8b949e;margin-bottom:6px}
+.rule-value{color:#e6edf3;line-height:1.6}
+.ticker-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.ticker-btn{padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid #30363d;background:#21262d;color:#8b949e;text-decoration:none}
+.ticker-btn:hover,.ticker-btn.active{background:#388bfd20;border-color:#388bfd;color:#58a6ff}
+footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1px solid #21262d;margin-top:48px}
+@media(max-width:768px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr}.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="brand">Trading<span>Research</span></div>
+  <a href="../index.html" class="nav-link ">Dashboard</a>
+<a href="../strategy/crm_exit.html" class="nav-link ">Strategy</a>
+<a href="../insights/index.html" class="nav-link ">Insights</a>
+
+  <div class="dropdown">
+    <button class="dropdown-btn">Tickers ▾</button>
+    <div class="dropdown-menu"><a href="../tickers/aapl.html" class="dropdown-item">AAPL</a>
+<a href="../tickers/msft.html" class="dropdown-item">MSFT</a>
+<a href="../tickers/googl.html" class="dropdown-item">GOOGL</a>
+<a href="../tickers/amzn.html" class="dropdown-item">AMZN</a>
+<a href="../tickers/nvda.html" class="dropdown-item">NVDA</a>
+<a href="../tickers/meta.html" class="dropdown-item">META</a>
+<a href="../tickers/tsla.html" class="dropdown-item">TSLA</a>
+</div>
+  </div>
+  <div style="margin-left:auto;color:#484f58;font-size:12px">Updated Apr 26, 2026</div>
+</nav>
+<div class="container">
+
+<div class="page-title">AAPL</div>
+<div class="page-sub">V3.0 CRM Exit · Jan 29 – Apr 26 2026 · 19 trades</div>
+
+<div class="ticker-nav"><a href="aapl.html" class="ticker-btn active">AAPL</a><a href="msft.html" class="ticker-btn ">MSFT</a><a href="googl.html" class="ticker-btn ">GOOGL</a><a href="amzn.html" class="ticker-btn ">AMZN</a><a href="nvda.html" class="ticker-btn ">NVDA</a><a href="meta.html" class="ticker-btn ">META</a><a href="tsla.html" class="ticker-btn ">TSLA</a></div>
+
+<div class="grid-4">
+  <div class="card"><div class="card-title">Win Rate</div><div class="card-value" style="color:#3fb950">52.6%</div><div class="card-sub">10W / 9L</div></div>
+  <div class="card"><div class="card-title">Stock PnL</div><div class="card-value" style="color:#3fb950">+5.80%</div><div class="card-sub">Avg W: +1.75% / L: -1.30%</div></div>
+  <div class="card"><div class="card-title">Profit Factor</div><div class="card-value" style="color:#3fb950">1.50</div><div class="card-sub">Gross win / gross loss</div></div>
+  <div class="card"><div class="card-title">Options PnL</div><div class="card-value" style="color:#3fb950">+214.32%</div><div class="card-sub">8W / 11L · 42.1% win</div></div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">Cumulative Equity Curve</div>
+  <div class="chart-sub">Stock and options PnL accumulated trade by trade</div>
+  <div>                            <div id="chart-equity-AAPL" class="plotly-graph-div" style="height:300px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("chart-equity-AAPL")) {                    Plotly.newPlot(                        "chart-equity-AAPL",                        [{"fill":"tozeroy","fillcolor":"rgba(63,185,80,0.08)","hovertemplate":"Trade %{x}\u003cbr\u003eCumulative: %{y:.2f}%\u003cextra\u003eStock\u003c\u002fextra\u003e","line":{"color":"#3fb950","width":2},"name":"Stock PnL","x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"y":[7.133,7.263,8.251,8.973,5.066,2.986,2.288,4.889,5.137,7.37,6.463,5.751,4.607,3.363,2.476,2.538,2.448,3.927,5.804],"type":"scatter"},{"fill":"tozeroy","fillcolor":"rgba(56,139,253,0.06)","hovertemplate":"Trade %{x}\u003cbr\u003eCumulative: %{y:.2f}%\u003cextra\u003eOptions\u003c\u002fextra\u003e","line":{"color":"#388bfd","width":2},"name":"Options PnL","x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"y":[318.568,318.272,340.227,343.807,270.63,225.587,212.046,251.478,258.367,324.978,299.098,274.299,235.65,167.898,130.716,129.069,126.241,172.944,214.316],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"shapes":[{"line":{"color":"#30363d","width":1},"type":"line","x0":0,"x1":1,"xref":"x domain","y0":0,"y1":0,"yref":"y"}],"yaxis":{"ticksuffix":"%","gridcolor":"#21262d","zerolinecolor":"#30363d"},"legend":{"orientation":"h","y":1.1,"bgcolor":"rgba(0,0,0,0)","bordercolor":"rgba(0,0,0,0)"},"xaxis":{"title":{"text":"Trade #"},"gridcolor":"#21262d","zerolinecolor":"#30363d"},"showlegend":true,"font":{"family":"Inter, sans-serif","color":"#e6edf3","size":12},"margin":{"l":16,"r":16,"t":24,"b":16},"paper_bgcolor":"#161b22","plot_bgcolor":"#161b22","height":300},                        {"responsive": true, "displayModeBar": false}                    )                };            </script>        </div>
+</div>
+
+<div class="grid-2">
+  <div class="chart-card" style="margin-bottom:0">
+    <div class="chart-title">Trade Duration vs PnL</div>
+    <div class="chart-sub">Bubble size = channel width · Green = winner · Red = loser</div>
+    <div>                            <div id="chart-scatter-AAPL" class="plotly-graph-div" style="height:300px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("chart-scatter-AAPL")) {                    Plotly.newPlot(                        "chart-scatter-AAPL",                        [{"hovertemplate":"\u003cb\u003eT1\u003c\u002fb\u003e\u003cbr\u003e2026-01-29\u003cbr\u003eLONG +7.13%\u003cbr\u003eDays: 7\u003cbr\u003eCh Width: $0.20\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"W","showlegend":false,"x":[7],"y":[7.1333],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT2\u003c\u002fb\u003e\u003cbr\u003e2026-02-09\u003cbr\u003eLONG +0.13%\u003cbr\u003eDays: 1\u003cbr\u003eCh Width: $2.53\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":10.12},"mode":"markers","name":"W","showlegend":false,"x":[1],"y":[0.1301],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT3\u003c\u002fb\u003e\u003cbr\u003e2026-02-10\u003cbr\u003eLONG +0.99%\u003cbr\u003eDays: 1\u003cbr\u003eCh Width: $2.19\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8.76},"mode":"markers","name":"W","showlegend":false,"x":[1],"y":[0.9877],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT4\u003c\u002fb\u003e\u003cbr\u003e2026-02-17\u003cbr\u003eSHORT +0.72%\u003cbr\u003eDays: 3\u003cbr\u003eCh Width: $1.15\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"W","showlegend":false,"x":[3],"y":[0.7218],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT5\u003c\u002fb\u003e\u003cbr\u003e2026-02-20\u003cbr\u003eSHORT -3.91%\u003cbr\u003eDays: 6\u003cbr\u003eCh Width: $1.01\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[6],"y":[-3.9067],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT6\u003c\u002fb\u003e\u003cbr\u003e2026-02-27\u003cbr\u003eLONG -2.08%\u003cbr\u003eDays: 3\u003cbr\u003eCh Width: $0.98\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[3],"y":[-2.0803],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT7\u003c\u002fb\u003e\u003cbr\u003e2026-03-04\u003cbr\u003eSHORT -0.70%\u003cbr\u003eDays: 0\u003cbr\u003eCh Width: $0.56\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[0],"y":[-0.6977],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT8\u003c\u002fb\u003e\u003cbr\u003e2026-03-09\u003cbr\u003eSHORT +2.60%\u003cbr\u003eDays: 7\u003cbr\u003eCh Width: $1.39\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"W","showlegend":false,"x":[7],"y":[2.6011],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT9\u003c\u002fb\u003e\u003cbr\u003e2026-03-17\u003cbr\u003eSHORT +0.25%\u003cbr\u003eDays: 0\u003cbr\u003eCh Width: $1.31\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"W","showlegend":false,"x":[0],"y":[0.2472],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT10\u003c\u002fb\u003e\u003cbr\u003e2026-03-18\u003cbr\u003eSHORT +2.23%\u003cbr\u003eDays: 2\u003cbr\u003eCh Width: $1.14\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"W","showlegend":false,"x":[2],"y":[2.2336],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT11\u003c\u002fb\u003e\u003cbr\u003e2026-03-23\u003cbr\u003eSHORT -0.91%\u003cbr\u003eDays: 1\u003cbr\u003eCh Width: $1.23\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[1],"y":[-0.9071],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT12\u003c\u002fb\u003e\u003cbr\u003e2026-03-24\u003cbr\u003eSHORT -0.71%\u003cbr\u003eDays: 1\u003cbr\u003eCh Width: $0.59\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[1],"y":[-0.7118],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT13\u003c\u002fb\u003e\u003cbr\u003e2026-03-25\u003cbr\u003eSHORT -1.14%\u003cbr\u003eDays: 1\u003cbr\u003eCh Width: $0.28\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[1],"y":[-1.1441],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT14\u003c\u002fb\u003e\u003cbr\u003e2026-03-27\u003cbr\u003eLONG -1.24%\u003cbr\u003eDays: 6\u003cbr\u003eCh Width: $0.01\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[6],"y":[-1.2441],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT15\u003c\u002fb\u003e\u003cbr\u003e2026-04-02\u003cbr\u003eLONG -0.89%\u003cbr\u003eDays: 5\u003cbr\u003eCh Width: $0.10\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[5],"y":[-0.8871],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT16\u003c\u002fb\u003e\u003cbr\u003e2026-04-13\u003cbr\u003eLONG +0.06%\u003cbr\u003eDays: 1\u003cbr\u003eCh Width: $0.98\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"W","showlegend":false,"x":[1],"y":[0.0622],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT17\u003c\u002fb\u003e\u003cbr\u003e2026-04-14\u003cbr\u003eLONG -0.09%\u003cbr\u003eDays: 0\u003cbr\u003eCh Width: $0.73\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#f85149","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"L","showlegend":false,"x":[0],"y":[-0.09],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT18\u003c\u002fb\u003e\u003cbr\u003e2026-04-14\u003cbr\u003eLONG +1.48%\u003cbr\u003eDays: 2\u003cbr\u003eCh Width: $0.67\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"W","showlegend":false,"x":[2],"y":[1.4792],"type":"scatter"},{"hovertemplate":"\u003cb\u003eT19\u003c\u002fb\u003e\u003cbr\u003e2026-04-21\u003cbr\u003eLONG +1.88%\u003cbr\u003eDays: 2\u003cbr\u003eCh Width: $1.68\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#3fb950","line":{"color":"#30363d","width":1},"opacity":0.8,"size":8},"mode":"markers","name":"W","showlegend":false,"x":[2],"y":[1.8767],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"shapes":[{"line":{"color":"#30363d","width":1},"type":"line","x0":0,"x1":1,"xref":"x domain","y0":0,"y1":0,"yref":"y"}],"yaxis":{"title":{"text":"PnL %"},"ticksuffix":"%","gridcolor":"#21262d","zerolinecolor":"#30363d"},"xaxis":{"title":{"text":"Days Held"},"gridcolor":"#21262d","zerolinecolor":"#30363d"},"showlegend":false,"font":{"family":"Inter, sans-serif","color":"#e6edf3","size":12},"margin":{"l":16,"r":16,"t":24,"b":16},"legend":{"bgcolor":"rgba(0,0,0,0)","bordercolor":"rgba(0,0,0,0)"},"paper_bgcolor":"#161b22","plot_bgcolor":"#161b22","height":300},                        {"responsive": true, "displayModeBar": false}                    )                };            </script>        </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:0">
+    <div class="chart-title">Win / Loss Split</div>
+    <div class="chart-sub">Stock trade outcomes</div>
+    <div>                            <div id="chart-donut-AAPL" class="plotly-graph-div" style="height:260px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("chart-donut-AAPL")) {                    Plotly.newPlot(                        "chart-donut-AAPL",                        [{"hole":0.6,"hoverinfo":"label+value","labels":["Winners","Losers"],"marker":{"colors":["#3fb950","#f85149"]},"textinfo":"label+percent","values":[10,9],"type":"pie"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"annotations":[{"font":{"color":"#e6edf3","size":18},"showarrow":false,"text":"52.6%\u003cbr\u003e\u003cspan style='font-size:10px'\u003eWin\u003c\u002fspan\u003e","x":0.5,"y":0.5}],"font":{"family":"Inter, sans-serif","color":"#e6edf3","size":12},"margin":{"l":16,"r":16,"t":24,"b":16},"legend":{"bgcolor":"rgba(0,0,0,0)","bordercolor":"rgba(0,0,0,0)"},"xaxis":{"gridcolor":"#21262d","zerolinecolor":"#30363d"},"yaxis":{"gridcolor":"#21262d","zerolinecolor":"#30363d"},"paper_bgcolor":"#161b22","plot_bgcolor":"#161b22","height":260},                        {"responsive": true, "displayModeBar": false}                    )                };            </script>        </div>
+  </div>
+</div>
+<br>
+<div class="chart-card">
+  <div class="chart-title">Options PnL vs Stock PnL per Trade</div>
+  <div class="chart-sub">Shows amplification — big stock moves = outsized options wins (and losses)</div>
+  <div>                            <div id="chart-opts-AAPL" class="plotly-graph-div" style="height:300px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("chart-opts-AAPL")) {                    Plotly.newPlot(                        "chart-opts-AAPL",                        [{"customdata":["T1 2026-01-29\u003cbr\u003eStock: +7.13%\u003cbr\u003eOptions: +318.57%","T2 2026-02-09\u003cbr\u003eStock: +0.13%\u003cbr\u003eOptions: -0.30%","T3 2026-02-10\u003cbr\u003eStock: +0.99%\u003cbr\u003eOptions: +21.96%","T4 2026-02-17\u003cbr\u003eStock: +0.72%\u003cbr\u003eOptions: +3.58%","T5 2026-02-20\u003cbr\u003eStock: -3.91%\u003cbr\u003eOptions: -73.18%","T6 2026-02-27\u003cbr\u003eStock: -2.08%\u003cbr\u003eOptions: -45.04%","T7 2026-03-04\u003cbr\u003eStock: -0.70%\u003cbr\u003eOptions: -13.54%","T8 2026-03-09\u003cbr\u003eStock: +2.60%\u003cbr\u003eOptions: +39.43%","T9 2026-03-17\u003cbr\u003eStock: +0.25%\u003cbr\u003eOptions: +6.89%","T10 2026-03-18\u003cbr\u003eStock: +2.23%\u003cbr\u003eOptions: +66.61%","T11 2026-03-23\u003cbr\u003eStock: -0.91%\u003cbr\u003eOptions: -25.88%","T12 2026-03-24\u003cbr\u003eStock: -0.71%\u003cbr\u003eOptions: -24.80%","T13 2026-03-25\u003cbr\u003eStock: -1.14%\u003cbr\u003eOptions: -38.65%","T14 2026-03-27\u003cbr\u003eStock: -1.24%\u003cbr\u003eOptions: -67.75%","T15 2026-04-02\u003cbr\u003eStock: -0.89%\u003cbr\u003eOptions: -37.18%","T16 2026-04-13\u003cbr\u003eStock: +0.06%\u003cbr\u003eOptions: -1.65%","T17 2026-04-14\u003cbr\u003eStock: -0.09%\u003cbr\u003eOptions: -2.83%","T18 2026-04-14\u003cbr\u003eStock: +1.48%\u003cbr\u003eOptions: +46.70%","T19 2026-04-21\u003cbr\u003eStock: +1.88%\u003cbr\u003eOptions: +41.37%"],"hovertemplate":"%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":["#3fb950","#f85149","#3fb950","#3fb950","#f85149","#f85149","#f85149","#3fb950","#3fb950","#3fb950","#f85149","#f85149","#f85149","#f85149","#f85149","#f85149","#f85149","#3fb950","#3fb950"],"line":{"color":"#30363d","width":1},"opacity":0.85,"size":10},"mode":"markers","x":[7.1333,0.1301,0.9877,0.7218,-3.9067,-2.0803,-0.6977,2.6011,0.2472,2.2336,-0.9071,-0.7118,-1.1441,-1.2441,-0.8871,0.0622,-0.09,1.4792,1.8767],"y":[318.5684,-0.2963,21.9553,3.5791,-73.1769,-45.0426,-13.5411,39.4324,6.889,66.6111,-25.8805,-24.7987,-38.6496,-67.7521,-37.1811,-1.6472,-2.8284,46.7034,41.3719],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"shapes":[{"line":{"color":"#30363d","width":1},"type":"line","x0":0,"x1":0,"xref":"x","y0":0,"y1":1,"yref":"y domain"},{"line":{"color":"#30363d","width":1},"type":"line","x0":0,"x1":1,"xref":"x domain","y0":0,"y1":0,"yref":"y"}],"xaxis":{"title":{"text":"Stock PnL %"},"ticksuffix":"%","gridcolor":"#21262d","zerolinecolor":"#30363d"},"yaxis":{"title":{"text":"Options PnL %"},"ticksuffix":"%","gridcolor":"#21262d","zerolinecolor":"#30363d"},"showlegend":false,"font":{"family":"Inter, sans-serif","color":"#e6edf3","size":12},"margin":{"l":16,"r":16,"t":24,"b":16},"legend":{"bgcolor":"rgba(0,0,0,0)","bordercolor":"rgba(0,0,0,0)"},"paper_bgcolor":"#161b22","plot_bgcolor":"#161b22","height":300},                        {"responsive": true, "displayModeBar": false}                    )                };            </script>        </div>
+</div>
+
+<div class="section-title">All Trades</div>
+<div class="chart-card" style="padding:0;overflow:hidden;overflow-x:auto">
+<table>
+  <thead><tr><th>#</th><th>Entry</th><th>Exit</th><th>Days</th><th>Dir</th><th>Entry $</th><th>Exit $</th><th>PnL</th><th>Max Profit</th><th>Max Loss</th><th>Ch Width</th><th>Opt PnL</th></tr></thead>
+  <tbody><tr>
+          <td style="color:#8b949e">1</td>
+          <td>01-29 09:30</td><td>02-05 10:00</td>
+          <td style="color:#8b949e">7d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$255.14</td><td>$273.34</td>
+          <td style="color:#3fb950;font-weight:600">+7.13%</td>
+          <td style="color:#3fb950">+9.52%</td>
+          <td style="color:#f85149">-0.29%</td>
+          <td style="color:#8b949e">$0.20</td>
+          <td style="color:#3fb950;font-weight:600">+318.57%</td>
+        </tr><tr>
+          <td style="color:#8b949e">2</td>
+          <td>02-09 12:30</td><td>02-10 10:45</td>
+          <td style="color:#8b949e">1d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$272.93</td><td>$273.29</td>
+          <td style="color:#3fb950;font-weight:600">+0.13%</td>
+          <td style="color:#3fb950">+0.89%</td>
+          <td style="color:#f85149">-0.07%</td>
+          <td style="color:#8b949e">$2.53</td>
+          <td style="color:#f85149;font-weight:600">-0.30%</td>
+        </tr><tr>
+          <td style="color:#8b949e">3</td>
+          <td>02-10 11:15</td><td>02-11 14:15</td>
+          <td style="color:#8b949e">1d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$273.35</td><td>$276.05</td>
+          <td style="color:#3fb950;font-weight:600">+0.99%</td>
+          <td style="color:#3fb950">+2.50%</td>
+          <td style="color:#f85149">-0.07%</td>
+          <td style="color:#8b949e">$2.19</td>
+          <td style="color:#3fb950;font-weight:600">+21.96%</td>
+        </tr><tr>
+          <td style="color:#8b949e">4</td>
+          <td>02-17 13:15</td><td>02-20 10:30</td>
+          <td style="color:#8b949e">3d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$265.29</td><td>$263.37</td>
+          <td style="color:#3fb950;font-weight:600">+0.72%</td>
+          <td style="color:#3fb950">+2.69%</td>
+          <td style="color:#f85149">-0.58%</td>
+          <td style="color:#8b949e">$1.15</td>
+          <td style="color:#3fb950;font-weight:600">+3.58%</td>
+        </tr><tr>
+          <td style="color:#8b949e">5</td>
+          <td>02-20 11:00</td><td>02-26 13:45</td>
+          <td style="color:#8b949e">6d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$262.76</td><td>$273.02</td>
+          <td style="color:#f85149;font-weight:600">-3.91%</td>
+          <td style="color:#3fb950">+0.46%</td>
+          <td style="color:#f85149">-5.08%</td>
+          <td style="color:#8b949e">$1.01</td>
+          <td style="color:#f85149;font-weight:600">-73.18%</td>
+        </tr><tr>
+          <td style="color:#8b949e">6</td>
+          <td>02-27 08:45</td><td>03-02 12:30</td>
+          <td style="color:#8b949e">3d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$270.64</td><td>$265.01</td>
+          <td style="color:#f85149;font-weight:600">-2.08%</td>
+          <td style="color:#3fb950">+0.28%</td>
+          <td style="color:#f85149">-3.86%</td>
+          <td style="color:#8b949e">$0.98</td>
+          <td style="color:#f85149;font-weight:600">-45.04%</td>
+        </tr><tr>
+          <td style="color:#8b949e">7</td>
+          <td>03-04 08:30</td><td>03-04 09:15</td>
+          <td style="color:#8b949e">0d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$262.30</td><td>$264.13</td>
+          <td style="color:#f85149;font-weight:600">-0.70%</td>
+          <td style="color:#3fb950">+0.34%</td>
+          <td style="color:#f85149">-0.77%</td>
+          <td style="color:#8b949e">$0.56</td>
+          <td style="color:#f85149;font-weight:600">-13.54%</td>
+        </tr><tr>
+          <td style="color:#8b949e">8</td>
+          <td>03-09 14:45</td><td>03-16 09:30</td>
+          <td style="color:#8b949e">7d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$259.89</td><td>$253.13</td>
+          <td style="color:#3fb950;font-weight:600">+2.60%</td>
+          <td style="color:#3fb950">+3.99%</td>
+          <td style="color:#f85149">-1.00%</td>
+          <td style="color:#8b949e">$1.39</td>
+          <td style="color:#3fb950;font-weight:600">+39.43%</td>
+        </tr><tr>
+          <td style="color:#8b949e">9</td>
+          <td>03-17 11:15</td><td>03-17 14:45</td>
+          <td style="color:#8b949e">0d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$254.86</td><td>$254.23</td>
+          <td style="color:#3fb950;font-weight:600">+0.25%</td>
+          <td style="color:#3fb950">+0.68%</td>
+          <td style="color:#f85149">-0.07%</td>
+          <td style="color:#8b949e">$1.31</td>
+          <td style="color:#3fb950;font-weight:600">+6.89%</td>
+        </tr><tr>
+          <td style="color:#8b949e">10</td>
+          <td>03-18 08:30</td><td>03-20 11:15</td>
+          <td style="color:#8b949e">2d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$254.30</td><td>$248.62</td>
+          <td style="color:#3fb950;font-weight:600">+2.23%</td>
+          <td style="color:#3fb950">+3.02%</td>
+          <td style="color:#f85149">-0.15%</td>
+          <td style="color:#8b949e">$1.14</td>
+          <td style="color:#3fb950;font-weight:600">+66.61%</td>
+        </tr><tr>
+          <td style="color:#8b949e">11</td>
+          <td>03-23 11:15</td><td>03-24 14:00</td>
+          <td style="color:#8b949e">1d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$250.80</td><td>$253.08</td>
+          <td style="color:#f85149;font-weight:600">-0.91%</td>
+          <td style="color:#3fb950">+0.50%</td>
+          <td style="color:#f85149">-1.60%</td>
+          <td style="color:#8b949e">$1.23</td>
+          <td style="color:#f85149;font-weight:600">-25.88%</td>
+        </tr><tr>
+          <td style="color:#8b949e">12</td>
+          <td>03-24 14:30</td><td>03-25 09:30</td>
+          <td style="color:#8b949e">1d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$251.48</td><td>$253.27</td>
+          <td style="color:#f85149;font-weight:600">-0.71%</td>
+          <td style="color:#3fb950">+0.10%</td>
+          <td style="color:#f85149">-1.39%</td>
+          <td style="color:#8b949e">$0.59</td>
+          <td style="color:#f85149;font-weight:600">-24.80%</td>
+        </tr><tr>
+          <td style="color:#8b949e">13</td>
+          <td>03-25 14:30</td><td>03-26 09:00</td>
+          <td style="color:#8b949e">1d</td>
+          <td><span class="badge badge-red">SHORT</span></td>
+          <td>$252.16</td><td>$255.05</td>
+          <td style="color:#f85149;font-weight:600">-1.14%</td>
+          <td style="color:#3fb950">+0.55%</td>
+          <td style="color:#f85149">-1.18%</td>
+          <td style="color:#8b949e">$0.28</td>
+          <td style="color:#f85149;font-weight:600">-38.65%</td>
+        </tr><tr>
+          <td style="color:#8b949e">14</td>
+          <td>03-27 08:30</td><td>04-02 08:30</td>
+          <td style="color:#8b949e">6d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$254.00</td><td>$250.84</td>
+          <td style="color:#f85149;font-weight:600">-1.24%</td>
+          <td style="color:#3fb950">+0.86%</td>
+          <td style="color:#f85149">-3.34%</td>
+          <td style="color:#8b949e">$0.01</td>
+          <td style="color:#f85149;font-weight:600">-67.75%</td>
+        </tr><tr>
+          <td style="color:#8b949e">15</td>
+          <td>04-02 08:45</td><td>04-07 08:30</td>
+          <td style="color:#8b949e">5d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$252.50</td><td>$250.26</td>
+          <td style="color:#f85149;font-weight:600">-0.89%</td>
+          <td style="color:#3fb950">+3.83%</td>
+          <td style="color:#f85149">-0.92%</td>
+          <td style="color:#8b949e">$0.10</td>
+          <td style="color:#f85149;font-weight:600">-37.18%</td>
+        </tr><tr>
+          <td style="color:#8b949e">16</td>
+          <td>04-13 08:30</td><td>04-14 10:15</td>
+          <td style="color:#8b949e">1d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$257.89</td><td>$258.06</td>
+          <td style="color:#3fb950;font-weight:600">+0.06%</td>
+          <td style="color:#3fb950">+1.56%</td>
+          <td style="color:#f85149">-0.48%</td>
+          <td style="color:#8b949e">$0.98</td>
+          <td style="color:#f85149;font-weight:600">-1.65%</td>
+        </tr><tr>
+          <td style="color:#8b949e">17</td>
+          <td>04-14 10:30</td><td>04-14 13:45</td>
+          <td style="color:#8b949e">0d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$258.24</td><td>$258.01</td>
+          <td style="color:#f85149;font-weight:600">-0.09%</td>
+          <td style="color:#3fb950">+0.59%</td>
+          <td style="color:#f85149">-0.41%</td>
+          <td style="color:#8b949e">$0.73</td>
+          <td style="color:#f85149;font-weight:600">-2.83%</td>
+        </tr><tr>
+          <td style="color:#8b949e">18</td>
+          <td>04-14 14:00</td><td>04-16 09:15</td>
+          <td style="color:#8b949e">2d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$258.24</td><td>$262.06</td>
+          <td style="color:#3fb950;font-weight:600">+1.48%</td>
+          <td style="color:#3fb950">+3.45%</td>
+          <td style="color:#f85149">-0.16%</td>
+          <td style="color:#8b949e">$0.67</td>
+          <td style="color:#3fb950;font-weight:600">+46.70%</td>
+        </tr><tr>
+          <td style="color:#8b949e">19</td>
+          <td>04-21 13:30</td><td>04-23 12:15</td>
+          <td style="color:#8b949e">2d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$267.23</td><td>$272.24</td>
+          <td style="color:#3fb950;font-weight:600">+1.88%</td>
+          <td style="color:#3fb950">+3.20%</td>
+          <td style="color:#f85149">-0.51%</td>
+          <td style="color:#8b949e">$1.68</td>
+          <td style="color:#3fb950;font-weight:600">+41.37%</td>
+        </tr><tr>
+          <td style="color:#8b949e">20</td>
+          <td>04-24 08:30</td><td><span style="color:#f0883e">open</span></td>
+          <td style="color:#8b949e">0d</td>
+          <td><span class="badge badge-green">LONG</span></td>
+          <td>$271.30</td><td>$271.06</td>
+          <td style="color:#f0883e;font-weight:600">open</td>
+          <td style="color:#3fb950">—</td>
+          <td style="color:#f85149">—</td>
+          <td style="color:#8b949e">$1.70</td>
+          <td style="color:#8b949e;font-weight:600">—</td>
+        </tr></tbody>
+</table>
+</div>
+
+</div>
+<footer>sameerbode.github.io/trading-research · Built with Python + Plotly · Apr 26, 2026</footer>
+</body>
+</html>

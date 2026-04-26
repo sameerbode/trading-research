@@ -1,0 +1,119 @@
+{
+  "id": "crm_exit",
+  "name": "CRM Exit",
+  "full_name": "Channel Rejection + Momentum Exit",
+  "version": "3.0",
+  "status": "active",
+  "created": "2026-04-25",
+  "universe": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"],
+  "timeframes": ["1H bias", "15m entry/exit"],
+  "asset_class": "Equities + Options",
+
+  "current_rules": {
+    "bias": "1H EMA34 vs EMA50 — 730d seeded, shift(1). EMA34 > EMA50 = BULLISH (longs only). EMA34 < EMA50 = BEARISH (shorts only).",
+    "entry": "15m candle touches the 1H 34/50 EMA channel (wick or close) AND closes outside in the bias direction. BEARISH: close < min(EMA34,EMA50). BULLISH: close > max(EMA34,EMA50). Requires close to exceed channel edge by at least $0.01.",
+    "exit": "15m EMA8 crosses EMA21 in the opposite direction of the trade. No other exit condition.",
+    "session": "CST RTH only — 8:30 AM to 3:00 PM. Partial days (< 20 bars) excluded.",
+    "options": "ATM put/call. Strike: nearest $5 increment. Expiry: next Friday >= 2 weeks from entry. IV: HV20. Model: Black-Scholes. r=4.5%."
+  },
+
+  "versions": [
+    {
+      "version": "1.0",
+      "name": "Baseline",
+      "entry": "15m close enters the zone between 1H EMA34 and EMA50 (fresh touch)",
+      "exit": "Opposite 15m EMA34/EMA50 cross",
+      "notes": "Established the 1H bias framework. EMA seeding bug found — only 60d used initially, fixed to 730d.",
+      "tsla_stock_pnl": 8.93,
+      "tsla_win_rate": 66.7,
+      "tsla_trades": 9
+    },
+    {
+      "version": "2.0",
+      "name": "Rejection Entry",
+      "entry": "15m candle touches channel + closes outside in bias direction",
+      "exit": "Opposite side close OR 15m EMA34/50 cross",
+      "notes": "Opposite side close exit introduced. Hurt performance — was stopping out good trades.",
+      "tsla_stock_pnl": -2.84,
+      "tsla_win_rate": 26.3,
+      "tsla_trades": 19
+    },
+    {
+      "version": "2.1",
+      "name": "8/21 Exit Test",
+      "entry": "Same as V2.0",
+      "exit": "Opposite side close OR 15m EMA8/21 cross",
+      "notes": "Tested 8/21 as exit but kept opposite side close. Still hurt by the close rule.",
+      "tsla_stock_pnl": -2.25,
+      "tsla_win_rate": 41.4,
+      "tsla_trades": 29
+    },
+    {
+      "version": "2.2",
+      "name": "5/12 Exit Test",
+      "entry": "Same as V2.0",
+      "exit": "Opposite side close OR 15m EMA5/12 cross",
+      "notes": "5/12 too fast — fires on small moves, misses continuation.",
+      "tsla_stock_pnl": -1.79,
+      "tsla_win_rate": 37.5,
+      "tsla_trades": 32
+    },
+    {
+      "version": "2.3a",
+      "name": "No Opposite Side Close — 34/50 Exit",
+      "entry": "Same as V2.0",
+      "exit": "15m EMA34/50 cross ONLY",
+      "notes": "Removing opposite side close was the breakthrough. But 34/50 holds too long — theta kills options.",
+      "tsla_stock_pnl": 5.28,
+      "tsla_win_rate": 55.6,
+      "tsla_trades": 9
+    },
+    {
+      "version": "2.3b",
+      "name": "No Opposite Side Close — 8/21 Exit",
+      "entry": "Same as V2.0",
+      "exit": "15m EMA8/21 cross ONLY",
+      "notes": "Best overall. Fast enough to beat theta, slow enough to ride real moves.",
+      "tsla_stock_pnl": 11.60,
+      "tsla_win_rate": 65.0,
+      "tsla_trades": 20
+    },
+    {
+      "version": "2.3c",
+      "name": "No Opposite Side Close — 5/12 Exit",
+      "entry": "Same as V2.0",
+      "exit": "15m EMA5/12 cross ONLY",
+      "notes": "Too many re-entries. Captures first leg but misses continuation that 8/21 rides.",
+      "tsla_stock_pnl": 3.34,
+      "tsla_win_rate": 52.0,
+      "tsla_trades": 25
+    },
+    {
+      "version": "3.0",
+      "name": "CRM Exit — Locked",
+      "entry": "15m touch + close outside in bias direction (close > ch_hi + 0.01 or close < ch_lo - 0.01)",
+      "exit": "15m EMA8/21 cross ONLY — no opposite side close",
+      "notes": "Official locked version. Validated on all MAG7. Added $0.01 buffer to prevent floating point entries at channel edge.",
+      "tsla_stock_pnl": 14.75,
+      "tsla_win_rate": 70.0,
+      "tsla_trades": 20
+    }
+  ],
+
+  "key_insights": [
+    "Removing the opposite side close exit was the single biggest improvement — win rate jumped from 26% to 65% on TSLA",
+    "8/21 exit beats 34/50 (holds too long, theta destroys options) and 5/12 (fires too fast, misses continuation)",
+    "730d seeding for 1H EMAs is required to match TradingView values — 60d seeding causes divergence",
+    "Thin channels (EMA34/50 width < $0.20) produce consistent noise trades — filter candidate",
+    "Options amplify stock moves dramatically: 5%+ stock move = 85-94% option gain at 14-17 DTE",
+    "Stock losers become outsized options losers: -3.5% stock = -64% options. Risk management critical.",
+    "14-18 DTE at entry is the sweet spot with 8/21 exit timing"
+  ],
+
+  "open_questions": [
+    "Apply channel width filter — what threshold maximises PF?",
+    "Test on extended data window beyond 60 days",
+    "GOOGL is a consistent loser — is it the strategy or the ticker?",
+    "MSFT 20% win rate but +390% options — driven by one outlier trade (T15 +552%). Need more data."
+  ]
+}
