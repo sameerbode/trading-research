@@ -1,0 +1,47 @@
+{
+  "id": "3m_cross",
+  "name": "3Min 34/50 Cross",
+  "full_name": "3-Minute EMA 34/50 Cross with Daily BX Bias",
+  "version": "1.0",
+  "status": "testing",
+  "created": "2026-04-29",
+  "universe": ["GC", "CL"],
+  "asset_class": "Futures",
+  "timeframes": ["Daily bias", "3m entry/exit"],
+
+  "indicators": {
+    "BX": "RSI(EMA(close, 5) - EMA(close, 20), 5) - 50 — oscillates around 0. Positive = bullish momentum, negative = bearish.",
+    "EMA_fast": 34,
+    "EMA_slow": 50
+  },
+
+  "current_rules": {
+    "bias": "Daily BX. BX > 0 = BULLISH (longs only). BX < 0 = BEARISH (shorts only). Use prior completed daily bar — no lookahead.",
+    "entry": "3min EMA34 crosses EMA50 in the bias direction. Long: EMA34 crosses above EMA50 when daily BX > 0. Short: EMA34 crosses below EMA50 when daily BX < 0.",
+    "exit": "Opposite 3min EMA34/50 cross. No other exit condition.",
+    "session": "All hours (CME Globex). Session filter TBD after V1 results.",
+    "sizing": "% move on close price. No options modeling in V1."
+  },
+
+  "versions": [
+    {
+      "version": "1.0",
+      "name": "Baseline",
+      "bias": "Daily BX > 0 / < 0",
+      "entry": "3min EMA34/50 cross in bias direction",
+      "exit": "Opposite 3min EMA34/50 cross",
+      "notes": "First run. All hours, no session filter, no additional conditions. GC and CL."
+    }
+  ],
+
+  "hypothesis": "The 3min EMA34/50 cross fires at the beginning of directional moves. Filtering by daily BX (momentum-normalized bias) removes cross noise in choppy/ranging days and keeps only moves aligned with the prevailing daily trend.",
+
+  "key_insights": [],
+
+  "open_questions": [
+    "Does daily BX filter actually improve win rate vs no filter?",
+    "What is the optimal session window — all hours vs RTH only?",
+    "GC vs CL — does one behave better with this approach?",
+    "How many trades per year? Is it tradeable frequency?"
+  ]
+}
