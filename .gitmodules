@@ -1,0 +1,3 @@
+[submodule "data/futures"]
+	path = data/futures
+	url = https://github.com/sameerbode/futures-data-cache.git
