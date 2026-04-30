@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3Min 34/50 Cross Strategy — V1.0 Results — Trading Research</title>
+<title>3Min 34/50 Cross Strategy — V1.0 CL Results — Trading Research</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <style>
@@ -71,8 +71,8 @@ footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1p
   <div class="brand">Trading<span>Research</span></div>
   <a href="../index.html" class="nav-link ">Dashboard</a>
 <a href="../strategy/crm_exit.html" class="nav-link ">CRM Exit</a>
-<a href="../strategy/3m_cross.html" class="nav-link active">3Min Cross GC</a>
-<a href="../strategy/3m_cross_cl.html" class="nav-link ">3Min Cross CL</a>
+<a href="../strategy/3m_cross.html" class="nav-link ">3Min Cross GC</a>
+<a href="../strategy/3m_cross_cl.html" class="nav-link active">3Min Cross CL</a>
 <a href="../insights/index.html" class="nav-link ">Insights</a>
 
   <div class="dropdown">
@@ -111,7 +111,7 @@ strong{color:#e6edf3}
 </style>
 <div class="publish-wrap">
 <h2>Strategy Rules</h2>
-<p><strong>Instrument:</strong> GC (Gold Futures, CME)
+<p><strong>Instrument:</strong> CL (WTI Crude Oil Futures, CME)
 <strong>Data:</strong> 1-minute Databento bars resampled to 3-minute
 <strong>Session:</strong> All hours — CME Globex (no session filter)</p>
 <h3>Entry</h3>
@@ -124,55 +124,12 @@ strong{color:#e6edf3}
 <h3>Indicators (analysis only — not used as filters in V1.0)</h3>
 <pre><code>BX = RSI( EMA(close, 5) - EMA(close, 20), 5 ) - 50
 </code></pre>
-<p>Oscillates around 0. Positive = bullish momentum, negative = bearish.</p>
 <ul>
-<li><strong>Daily BX</strong> — calculated on CME session closes (5 PM CT open → 4 PM CT close). Each bar uses the prior completed session's BX. No lookahead.</li>
-<li><strong>Weekly BX</strong> — same formula on weekly closes (week ending Friday 4 PM CT). Each bar uses the prior completed week's BX. No lookahead.</li>
+<li><strong>Daily BX</strong> — CME session closes (5 PM CT open → 4 PM CT close). Prior completed session only. No lookahead.</li>
+<li><strong>Weekly BX</strong> — week ending Friday 4 PM CT. Prior completed week only. No lookahead.</li>
 <li><strong>BX direction</strong> — rising if current period BX &gt; prior period BX.</li>
 </ul>
-<p>Bucket labels:
-- <strong>D↑</strong> = daily BX rising, <strong>D↓</strong> = daily BX falling
-- <strong>W↑</strong> = weekly BX rising, <strong>W↓</strong> = weekly BX falling</p>
-<hr />
-<h2>Quick Reference — When to Trade</h2>
-<p>Stats from 10-year backtest (Apr 2016 – Apr 2026). ✅ = take the trade · ❌ = skip</p>
-<table class="publish-table">
-<thead>
-<tr>
-<th style="text-align: center;">Bucket</th>
-<th style="text-align: left;">Long</th>
-<th style="text-align: left;">Short</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;"><strong>D↑ / W↑</strong><br>Daily momentum building<br>Weekly momentum building</td>
-<td style="text-align: left;">✅<br>Win Rate: 28.8%<br>Avg Win: +9.2 pts<br>Avg Loss: -3.3 pts<br>Total PnL: +29.20%</td>
-<td style="text-align: left;">❌<br>Win Rate: 26.4%<br>Avg Win: +9.4 pts<br>Avg Loss: -3.2 pts<br>Total PnL: -2.25%</td>
-</tr>
-<tr>
-<td style="text-align: center;"><strong>D↑ / W↓</strong><br>Daily momentum building<br>Weekly momentum falling</td>
-<td style="text-align: left;">⚠️<br>Win Rate: 29.2%<br>Avg Win: +8.1 pts<br>Avg Loss: -2.9 pts<br>Total PnL: +23.49%</td>
-<td style="text-align: left;">❌<br>Win Rate: 26.4%<br>Avg Win: +6.3 pts<br>Avg Loss: -2.8 pts<br>Total PnL: -32.00%</td>
-</tr>
-<tr>
-<td style="text-align: center;"><strong>D↓ / W↑</strong><br>Daily momentum falling<br>Weekly momentum building</td>
-<td style="text-align: left;">✅<br>Win Rate: 29.9%<br>Avg Win: +9.2 pts<br>Avg Loss: -2.9 pts<br>Total PnL: +51.13%</td>
-<td style="text-align: left;">❌<br>Win Rate: 27.8%<br>Avg Win: +7.4 pts<br>Avg Loss: -3.1 pts<br>Total PnL: -14.19%</td>
-</tr>
-<tr>
-<td style="text-align: center;"><strong>D↓ / W↓</strong><br>Daily momentum falling<br>Weekly momentum falling</td>
-<td style="text-align: left;">❌<br>Win Rate: 27.9%<br>Avg Win: +7.5 pts<br>Avg Loss: -2.8 pts<br>Total PnL: +3.78%</td>
-<td style="text-align: left;">✅<br>Win Rate: 27.7%<br>Avg Win: +8.5 pts<br>Avg Loss: -3.0 pts<br>Total PnL: +12.38%</td>
-</tr>
-</tbody>
-</table>
-<blockquote class="publish-quote">
-<p><strong>Rule of thumb:</strong> Weekly BX direction = trade direction. W↑ → longs only. W↓ → shorts only.
-Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into the weekly trend.
-⚠️ D↑/W↓ long is positive over 10 years (+23.49%) but driven by GC's secular bull run — not a confirmed structural edge. Trade with caution in clearly bullish regimes only.
-❌ D↑/W↓ short = worst bucket in the entire table. Skip always.</p>
-</blockquote>
+<p>Bucket labels: <strong>D↑</strong> = daily rising · <strong>D↓</strong> = daily falling · <strong>W↑</strong> = weekly rising · <strong>W↓</strong> = weekly falling</p>
 <hr />
 <h2>Overall Results</h2>
 <table class="publish-table">
@@ -191,36 +148,78 @@ Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into t
 </tr>
 <tr>
 <td>Total Trades</td>
-<td>708</td>
-<td>17,722</td>
+<td>846</td>
+<td>17,728</td>
 </tr>
 <tr>
 <td>Win Rate</td>
-<td>29.1%</td>
-<td>28.0%</td>
+<td>28.1%</td>
+<td>27.2%</td>
 </tr>
 <tr>
 <td>Avg Win (pts)</td>
-<td>+37</td>
-<td>+8.5</td>
+<td>+1.0</td>
+<td>+0.6</td>
 </tr>
 <tr>
 <td>Avg Loss (pts)</td>
-<td>-12</td>
-<td>-3.0</td>
+<td>-0.3</td>
+<td>-0.2</td>
 </tr>
 <tr>
 <td>Total PnL</td>
-<td>+29.20%</td>
-<td>+71.55%</td>
+<td>+23.93%</td>
+<td>+19.29%</td>
 </tr>
 <tr>
 <td>Profit Factor</td>
-<td>1.225</td>
-<td>1.04</td>
+<td>1.096</td>
+<td>1.004</td>
 </tr>
 </tbody>
 </table>
+<blockquote class="publish-quote">
+<p>CL is harder than GC. PF of 1.004 over 10 years means the unfiltered strategy barely covers costs. Bucket filtering is essential.</p>
+</blockquote>
+<hr />
+<h2>Quick Reference — When to Trade CL</h2>
+<p>Stats from 10-year backtest (Apr 2016 – Apr 2026). ✅ = take · ⚠️ = caution · ❌ = skip</p>
+<table class="publish-table">
+<thead>
+<tr>
+<th style="text-align: center;">Bucket</th>
+<th style="text-align: left;">Long</th>
+<th style="text-align: left;">Short</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong>D↑ / W↑</strong><br>Daily momentum building<br>Weekly momentum building</td>
+<td style="text-align: left;">❌<br>Win Rate: 25.5%<br>Avg Win: +0.6 pts<br>Avg Loss: -0.2 pts<br>Total PnL: -29.53%</td>
+<td style="text-align: left;">❌<br>Win Rate: 26.7%<br>Avg Win: +0.6 pts<br>Avg Loss: -0.2 pts<br>Total PnL: -14.24%</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>D↑ / W↓</strong><br>Daily momentum building<br>Weekly momentum falling</td>
+<td style="text-align: left;">⚠️<br>Win Rate: 30.1%<br>Avg Win: +0.6 pts<br>Avg Loss: -0.2 pts<br>Total PnL: +11.99%</td>
+<td style="text-align: left;">❌<br>Win Rate: 26.8%<br>Avg Win: +0.6 pts<br>Avg Loss: -0.2 pts<br>Total PnL: -10.83%</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>D↓ / W↑</strong><br>Daily momentum falling<br>Weekly momentum building</td>
+<td style="text-align: left;">✅<br>Win Rate: 29.0%<br>Avg Win: +0.6 pts<br>Avg Loss: -0.2 pts<br>Total PnL: +41.45%</td>
+<td style="text-align: left;">❌<br>Win Rate: 25.3%<br>Avg Win: +0.6 pts<br>Avg Loss: -0.2 pts<br>Total PnL: -66.93%</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>D↓ / W↓</strong><br>Daily momentum falling<br>Weekly momentum falling</td>
+<td style="text-align: left;">✅<br>Win Rate: 28.7%<br>Avg Win: +0.6 pts<br>Avg Loss: -0.2 pts<br>Total PnL: +75.38%</td>
+<td style="text-align: left;">⚠️<br>Win Rate: 26.0%<br>Avg Win: +0.7 pts<br>Avg Loss: -0.2 pts<br>Total PnL: +12.00%</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="publish-quote">
+<p><strong>CL rule:</strong> Daily BX falling (D↓) = take longs. Weekly direction is secondary.
+D↓/W↑ and D↓/W↓ longs are both strong. D↑/W↑ longs are a trap — positive in short windows, -29.53% over 10 years.
+❌ D↓/W↑ shorts = worst bucket in the entire table (-66.93%). Never short into a rising weekly trend on CL.</p>
+</blockquote>
 <hr />
 <h2>Bucket Returns — 7 Month (Sep 2025 – Mar 2026)</h2>
 <h3>Longs</h3>
@@ -238,43 +237,43 @@ Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into t
 <tbody>
 <tr>
 <td>D↑/W↑</td>
-<td>137</td>
-<td>27.7%</td>
-<td>+42.1 pts</td>
-<td>-13.2 pts</td>
-<td>+5.89%</td>
+<td>142</td>
+<td>21.1%</td>
+<td>+2.0 pts</td>
+<td>-0.4 pts</td>
+<td>+18.21%</td>
 </tr>
 <tr>
 <td>D↑/W↓</td>
-<td>66</td>
-<td>28.8%</td>
-<td>+28.1 pts</td>
-<td>-9.6 pts</td>
-<td>+2.33%</td>
+<td>60</td>
+<td>35.0%</td>
+<td>+0.4 pts</td>
+<td>-0.2 pts</td>
+<td>+2.82%</td>
 </tr>
 <tr>
 <td><strong>D↓/W↑</strong></td>
-<td><strong>89</strong></td>
-<td><strong>37.1%</strong></td>
-<td><strong>+37.7 pts</strong></td>
-<td><strong>-10.5 pts</strong></td>
-<td><strong>+13.80%</strong></td>
+<td><strong>127</strong></td>
+<td><strong>33.9%</strong></td>
+<td><strong>+1.0 pts</strong></td>
+<td><strong>-0.3 pts</strong></td>
+<td><strong>+22.12%</strong></td>
 </tr>
 <tr>
 <td>D↓/W↓</td>
-<td>62</td>
-<td>30.6%</td>
-<td>+30.6 pts</td>
-<td>-14.0 pts</td>
-<td>-0.09%</td>
+<td>94</td>
+<td>29.8%</td>
+<td>+0.4 pts</td>
+<td>-0.2 pts</td>
+<td>+0.86%</td>
 </tr>
 <tr>
 <td><strong>ALL</strong></td>
-<td><strong>354</strong></td>
-<td><strong>30.8%</strong></td>
-<td><strong>+36.4 pts</strong></td>
-<td><strong>-12.1 pts</strong></td>
-<td><strong>+21.93%</strong></td>
+<td><strong>423</strong></td>
+<td><strong>28.8%</strong></td>
+<td><strong>+1.0 pts</strong></td>
+<td><strong>-0.3 pts</strong></td>
+<td><strong>+44.01%</strong></td>
 </tr>
 </tbody>
 </table>
@@ -294,42 +293,42 @@ Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into t
 <tr>
 <td>D↑/W↑</td>
 <td>143</td>
-<td>25.9%</td>
-<td>+43.4 pts</td>
-<td>-12.6 pts</td>
-<td>+4.47%</td>
+<td>34.3%</td>
+<td>+0.9 pts</td>
+<td>-0.4 pts</td>
+<td>+2.66%</td>
 </tr>
 <tr>
 <td>D↑/W↓</td>
-<td>66</td>
-<td>18.2%</td>
-<td>+33.2 pts</td>
-<td>-9.3 pts</td>
-<td>-2.53%</td>
+<td>67</td>
+<td>26.9%</td>
+<td>+0.4 pts</td>
+<td>-0.2 pts</td>
+<td>-2.54%</td>
 </tr>
 <tr>
 <td>D↓/W↑</td>
-<td>83</td>
-<td>31.3%</td>
-<td>+24.2 pts</td>
-<td>-12.4 pts</td>
-<td>-2.22%</td>
+<td>126</td>
+<td>25.4%</td>
+<td>+0.7 pts</td>
+<td>-0.3 pts</td>
+<td>-14.83%</td>
 </tr>
 <tr>
-<td><strong>D↓/W↓</strong></td>
-<td><strong>62</strong></td>
-<td><strong>35.5%</strong></td>
-<td><strong>+45.3 pts</strong></td>
-<td><strong>-15.3 pts</strong></td>
-<td><strong>+7.55%</strong></td>
+<td>D↓/W↓</td>
+<td>87</td>
+<td>19.5%</td>
+<td>+0.5 pts</td>
+<td>-0.2 pts</td>
+<td>-5.36%</td>
 </tr>
 <tr>
 <td><strong>ALL</strong></td>
-<td><strong>354</strong></td>
+<td><strong>423</strong></td>
 <td><strong>27.4%</strong></td>
-<td><strong>+37.5 pts</strong></td>
-<td><strong>-12.3 pts</strong></td>
-<td><strong>+7.27%</strong></td>
+<td><strong>+0.7 pts</strong></td>
+<td><strong>-0.3 pts</strong></td>
+<td><strong>-20.07%</strong></td>
 </tr>
 </tbody>
 </table>
@@ -347,38 +346,38 @@ Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into t
 <tbody>
 <tr>
 <td>D↑/W↑</td>
-<td>280</td>
-<td>+5.89%</td>
-<td>+4.47%</td>
-<td>+10.36%</td>
+<td>285</td>
+<td>+18.21%</td>
+<td>+2.66%</td>
+<td>+20.87%</td>
 </tr>
 <tr>
 <td>D↑/W↓</td>
-<td>132</td>
-<td>+2.33%</td>
-<td>-2.53%</td>
-<td>-0.20%</td>
+<td>127</td>
+<td>+2.82%</td>
+<td>-2.54%</td>
+<td>+0.28%</td>
 </tr>
 <tr>
 <td><strong>D↓/W↑</strong></td>
-<td><strong>172</strong></td>
-<td><strong>+13.80%</strong></td>
-<td><strong>-2.22%</strong></td>
-<td><strong>+11.58%</strong></td>
+<td><strong>253</strong></td>
+<td><strong>+22.12%</strong></td>
+<td><strong>-14.83%</strong></td>
+<td><strong>+7.29%</strong></td>
 </tr>
 <tr>
 <td>D↓/W↓</td>
-<td>124</td>
-<td>-0.09%</td>
-<td>+7.55%</td>
-<td>+7.46%</td>
+<td>181</td>
+<td>+0.86%</td>
+<td>-5.36%</td>
+<td>-4.50%</td>
 </tr>
 <tr>
 <td><strong>ALL</strong></td>
-<td><strong>708</strong></td>
-<td><strong>+21.93%</strong></td>
-<td><strong>+7.27%</strong></td>
-<td><strong>+29.20%</strong></td>
+<td><strong>846</strong></td>
+<td><strong>+44.01%</strong></td>
+<td><strong>-20.07%</strong></td>
+<td><strong>+23.93%</strong></td>
 </tr>
 </tbody>
 </table>
@@ -399,43 +398,43 @@ Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into t
 <tbody>
 <tr>
 <td>D↑/W↑</td>
-<td>2,330</td>
-<td>28.8%</td>
-<td>+9.2 pts</td>
-<td>-3.3 pts</td>
-<td>+29.20%</td>
+<td>2,413</td>
+<td>25.5%</td>
+<td>+0.6 pts</td>
+<td>-0.2 pts</td>
+<td>-29.53%</td>
 </tr>
 <tr>
 <td>D↑/W↓</td>
-<td>2,126</td>
-<td>29.2%</td>
-<td>+8.1 pts</td>
-<td>-2.9 pts</td>
-<td>+23.49%</td>
+<td>2,139</td>
+<td>30.1%</td>
+<td>+0.6 pts</td>
+<td>-0.2 pts</td>
+<td>+11.99%</td>
 </tr>
 <tr>
 <td><strong>D↓/W↑</strong></td>
-<td><strong>2,054</strong></td>
-<td><strong>29.9%</strong></td>
-<td><strong>+9.2 pts</strong></td>
-<td><strong>-2.9 pts</strong></td>
-<td><strong>+51.13%</strong></td>
+<td><strong>2,346</strong></td>
+<td><strong>29.0%</strong></td>
+<td><strong>+0.6 pts</strong></td>
+<td><strong>-0.2 pts</strong></td>
+<td><strong>+41.45%</strong></td>
 </tr>
 <tr>
-<td>D↓/W↓</td>
-<td>2,351</td>
-<td>27.9%</td>
-<td>+7.5 pts</td>
-<td>-2.8 pts</td>
-<td>+3.78%</td>
+<td><strong>D↓/W↓</strong></td>
+<td><strong>1,966</strong></td>
+<td><strong>28.7%</strong></td>
+<td><strong>+0.6 pts</strong></td>
+<td><strong>-0.2 pts</strong></td>
+<td><strong>+75.38%</strong></td>
 </tr>
 <tr>
 <td><strong>ALL</strong></td>
-<td><strong>8,861</strong></td>
-<td><strong>28.9%</strong></td>
-<td><strong>+8.5 pts</strong></td>
-<td><strong>-3.0 pts</strong></td>
-<td><strong>+107.61%</strong></td>
+<td><strong>8,864</strong></td>
+<td><strong>28.2%</strong></td>
+<td><strong>+0.6 pts</strong></td>
+<td><strong>-0.2 pts</strong></td>
+<td><strong>+99.29%</strong></td>
 </tr>
 </tbody>
 </table>
@@ -454,43 +453,43 @@ Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into t
 <tbody>
 <tr>
 <td>D↑/W↑</td>
-<td>2,402</td>
-<td>26.4%</td>
-<td>+9.4 pts</td>
-<td>-3.2 pts</td>
-<td>-2.25%</td>
+<td>2,500</td>
+<td>26.7%</td>
+<td>+0.6 pts</td>
+<td>-0.2 pts</td>
+<td>-14.24%</td>
 </tr>
 <tr>
 <td>D↑/W↓</td>
-<td>2,185</td>
-<td>26.4%</td>
-<td>+6.3 pts</td>
-<td>-2.8 pts</td>
-<td>-32.00%</td>
+<td>2,194</td>
+<td>26.8%</td>
+<td>+0.6 pts</td>
+<td>-0.2 pts</td>
+<td>-10.83%</td>
 </tr>
 <tr>
 <td>D↓/W↑</td>
-<td>1,993</td>
-<td>27.8%</td>
-<td>+7.4 pts</td>
-<td>-3.1 pts</td>
-<td>-14.19%</td>
+<td>2,270</td>
+<td>25.3%</td>
+<td>+0.6 pts</td>
+<td>-0.2 pts</td>
+<td>-66.93%</td>
 </tr>
 <tr>
 <td><strong>D↓/W↓</strong></td>
-<td><strong>2,281</strong></td>
-<td><strong>27.7%</strong></td>
-<td><strong>+8.5 pts</strong></td>
-<td><strong>-3.0 pts</strong></td>
-<td><strong>+12.38%</strong></td>
+<td><strong>1,900</strong></td>
+<td><strong>26.0%</strong></td>
+<td><strong>+0.7 pts</strong></td>
+<td><strong>-0.2 pts</strong></td>
+<td><strong>+12.00%</strong></td>
 </tr>
 <tr>
 <td><strong>ALL</strong></td>
-<td><strong>8,861</strong></td>
-<td><strong>27.1%</strong></td>
-<td><strong>+8.0 pts</strong></td>
-<td><strong>-3.0 pts</strong></td>
-<td><strong>-36.05%</strong></td>
+<td><strong>8,864</strong></td>
+<td><strong>26.2%</strong></td>
+<td><strong>+0.6 pts</strong></td>
+<td><strong>-0.2 pts</strong></td>
+<td><strong>-79.99%</strong></td>
 </tr>
 </tbody>
 </table>
@@ -508,79 +507,103 @@ Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into t
 <tbody>
 <tr>
 <td>D↑/W↑</td>
-<td>4,732</td>
-<td>+29.20%</td>
-<td>-2.25%</td>
-<td>+26.95%</td>
+<td>4,913</td>
+<td>-29.53%</td>
+<td>-14.24%</td>
+<td>-43.77%</td>
 </tr>
 <tr>
 <td>D↑/W↓</td>
-<td>4,311</td>
-<td>+23.49%</td>
-<td>-32.00%</td>
-<td>-8.51%</td>
+<td>4,333</td>
+<td>+11.99%</td>
+<td>-10.83%</td>
+<td>+1.16%</td>
 </tr>
 <tr>
 <td><strong>D↓/W↑</strong></td>
-<td><strong>4,047</strong></td>
-<td><strong>+51.13%</strong></td>
-<td><strong>-14.19%</strong></td>
-<td><strong>+36.94%</strong></td>
+<td><strong>4,616</strong></td>
+<td><strong>+41.45%</strong></td>
+<td><strong>-66.93%</strong></td>
+<td><strong>-25.48%</strong></td>
 </tr>
 <tr>
-<td>D↓/W↓</td>
-<td>4,632</td>
-<td>+3.78%</td>
-<td>+12.38%</td>
-<td>+16.16%</td>
+<td><strong>D↓/W↓</strong></td>
+<td><strong>3,866</strong></td>
+<td><strong>+75.38%</strong></td>
+<td><strong>+12.00%</strong></td>
+<td><strong>+87.38%</strong></td>
 </tr>
 <tr>
 <td><strong>ALL</strong></td>
-<td><strong>17,722</strong></td>
-<td><strong>+107.61%</strong></td>
-<td><strong>-36.05%</strong></td>
-<td><strong>+71.56%</strong></td>
+<td><strong>17,728</strong></td>
+<td><strong>+99.29%</strong></td>
+<td><strong>-79.99%</strong></td>
+<td><strong>+19.29%</strong></td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2>What the 10-Year Data Confirms vs Challenges</h2>
-<h3>Confirmed</h3>
-<ul>
-<li><strong>D↓/W↑ longs are the best bucket in both windows</strong> — +13.80% over 7 months, +51.13% over 10 years. Consistent pullback-in-uptrend edge.</li>
-<li><strong>D↑/W↓ shorts are consistently the worst</strong> — -2.53% over 7 months, -32.00% over 10 years. Shorting when daily is rising against weekly weakness destroys capital.</li>
-<li><strong>Weekly BX direction separates longs from shorts</strong> — longs in W↑ generated +52.69% combined over 10 years vs -16.44% for shorts in W↑.</li>
-</ul>
-<h3>Challenged</h3>
-<ul>
-<li><strong>D↓/W↓ longs showed strength in 7 months (+0% roughly) but only +3.78% over 10 years</strong> — marginal, not reliable.</li>
-<li><strong>D↑/W↓ longs looked weak in 7 months (+2.33%) but generated +23.49% over 10 years</strong> — the secular gold bull run gave these long tailwind. Not structurally sound.</li>
-<li><strong>Overall PF dropped from 1.22 to 1.04 on 10 years</strong> — the 7-month window was during an unusually strong directional period for GC. Not representative of average conditions.</li>
-</ul>
+<h2>CL vs GC — Key Differences</h2>
+<table class="publish-table">
+<thead>
+<tr>
+<th></th>
+<th>GC (Gold)</th>
+<th>CL (Crude Oil)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Best long bucket</td>
+<td>D↓/W↑ (+51.13%)</td>
+<td>D↓/W↓ (+75.38%)</td>
+</tr>
+<tr>
+<td>Weekly BX as filter</td>
+<td>Strong — W↑ = longs only</td>
+<td>Weak — D↓ matters more than W</td>
+</tr>
+<tr>
+<td>Shorts overall</td>
+<td>-36.05%</td>
+<td>-79.99% — much worse</td>
+</tr>
+<tr>
+<td>Worst bucket</td>
+<td>D↑/W↓ short (-32%)</td>
+<td>D↓/W↑ short (-66.93%)</td>
+</tr>
+<tr>
+<td>D↑/W↑ longs</td>
+<td>+29.20% (ok)</td>
+<td>-29.53% (avoid)</td>
+</tr>
+<tr>
+<td>10-year PF</td>
+<td>1.04</td>
+<td>1.004</td>
+</tr>
+</tbody>
+</table>
+<p><strong>GC:</strong> Weekly BX direction drives the trade direction. W↑ = longs, W↓ = shorts.
+<strong>CL:</strong> Daily BX falling (D↓) drives longs regardless of weekly direction. Shorts rarely work.</p>
 <hr />
-<h2>Decision Tree</h2>
-<pre><code>Is Weekly BX rising (W↑)?
+<h2>Decision Tree — CL</h2>
+<pre><code>Is Daily BX falling (D↓)?
 │
-├── YES — W↑
-│   │
-│   ├── Is Daily BX falling (D↓)?
-│   │   └── LONG on 3min EMA34/50 cross ← best setup (37.1% WR 7m / 29.9% WR 10y)
-│   │
-│   └── Is Daily BX rising (D↑)?
-│       └── LONG on 3min EMA34/50 cross ← acceptable (27.7% WR 7m / 28.8% WR 10y)
-│           (skip all shorts when W↑)
+├── YES — D↓
+│   ├── W↑? → LONG on 3min EMA34/50 cross ← strong (29.0% WR, +41.45% 10y)
+│   └── W↓? → LONG on 3min EMA34/50 cross ← best (28.7% WR, +75.38% 10y)
+│             (skip all D↓ shorts — D↓/W↑ short is -66.93%)
 │
-└── NO — W↓
-    │
-    ├── Is Daily BX falling (D↓)?
-    │   └── SHORT on 3min EMA34/50 cross ← best short setup (35.5% WR 7m / 27.7% WR 10y)
-    │
-    └── Is Daily BX rising (D↑)?
-        └── SKIP — worst bucket in both windows (18.2% WR 7m, -32.00% PnL 10y)
+└── NO — D↑
+    ├── W↓? → ⚠️ LONG with caution (30.1% WR, +11.99% 10y)
+    └── W↑? → ❌ SKIP longs (-29.53% 10y — trap bucket)
+              ❌ SKIP shorts too (-14.24% 10y)
 </code></pre>
 <hr />
-<h2>Filtered Results — Best Buckets Only (D↓ direction)</h2>
-<p>Taking only D↓/W↑ longs and D↓/W↓ shorts:</p>
+<h2>Filtered Results — Best Buckets Only</h2>
+<p>Taking D↓ longs only (both W↑ and W↓):</p>
 <table class="publish-table">
 <thead>
 <tr>
@@ -592,58 +615,46 @@ Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into t
 <tbody>
 <tr>
 <td>Trades</td>
-<td>151</td>
-<td>4,335</td>
+<td>221</td>
+<td>4,312</td>
 </tr>
 <tr>
-<td>Win%</td>
-<td>36.4%</td>
-<td>28.8%</td>
+<td>D↓/W↑ Long PnL</td>
+<td>+22.12%</td>
+<td>+41.45%</td>
 </tr>
 <tr>
-<td>Long PnL</td>
-<td>+13.80%</td>
-<td>+51.13%</td>
-</tr>
-<tr>
-<td>Short PnL</td>
-<td>+7.55%</td>
-<td>+12.38%</td>
+<td>D↓/W↓ Long PnL</td>
+<td>+0.86%</td>
+<td>+75.38%</td>
 </tr>
 <tr>
 <td><strong>Combined PnL</strong></td>
-<td><strong>+21.35%</strong></td>
-<td><strong>+63.51%</strong></td>
-</tr>
-<tr>
-<td>Est. PF</td>
-<td>~1.55</td>
-<td>~1.3</td>
+<td><strong>+22.98%</strong></td>
+<td><strong>+116.83%</strong></td>
 </tr>
 </tbody>
 </table>
 <ul>
-<li>Removes 57% of trades vs unfiltered</li>
-<li>Captures 89% of total 10-year PnL</li>
-<li>~22 trades/month on GC (7-month window), ~36/month over 10 years</li>
+<li>Removes 48% of trades</li>
+<li>Captures 118% of unfiltered 10-year PnL (filtered outperforms unfiltered by removing losing buckets)</li>
 </ul>
 <hr />
 <h2>Open Questions for V1.1</h2>
 <ol>
-<li>Does adding a hard stop (e.g. 15 pts) reduce avg loss without hurting win rate?</li>
-<li>How do results hold on CL across the same periods?</li>
-<li>What does the year-by-year PnL look like — are there losing years?</li>
-<li>At 28% win rate, expect runs of 8-10 consecutive losses — what does position sizing look like?</li>
-<li>Can PF reach ≥ 1.5 consistently before considering live trading?</li>
+<li>Why does D↑/W↑ long work short-term (+18.21% in 7 months) but fail long-term (-29.53%)? Regime-dependent?</li>
+<li>Why are CL shorts so much worse than GC shorts overall?</li>
+<li>Does adding a hard stop improve CL more than GC given the higher volatility?</li>
+<li>Year-by-year PnL — which years are losing years for the D↓ long filter?</li>
+<li>Can PF reach ≥ 1.5 on D↓ longs with an additional stop rule?</li>
 </ol>
 <hr />
 <h2>Notes</h2>
 <ul>
-<li>V1.0 is a characterisation run — no filters applied, all crosses taken.</li>
-<li>Daily and weekly BX use proper CME session closes (5 PM CT → 4 PM CT), not calendar midnight.</li>
-<li>All BX values at entry use the prior completed session — no lookahead.</li>
-<li>Points (Avg Win / Avg Loss) are raw price points. For GC: 1 point = $100/contract.</li>
-<li>The 7-month window (Sep 2025 – Mar 2026) coincided with a strong GC bull run. 10-year results are more representative of average market conditions.</li>
+<li>V1.0 characterisation run — no filters applied, all crosses taken.</li>
+<li>CME session closes used: 5 PM CT open → 4 PM CT close. No lookahead.</li>
+<li>Points are raw price points. For CL: 1 point = $1,000/contract.</li>
+<li>CL is structurally different from GC — crude oil is more mean-reverting and driven by supply/demand shocks. The secular bull trend that helped GC longs does not exist in CL over this period.</li>
 </ul>
 </div>
 

@@ -68,10 +68,11 @@ def load_insights(project_id):
 def shell(title, content, active="home", depth=0):
     prefix = "../" * depth
     nav_items = [
-        ("home",     f"{prefix}index.html",             "Dashboard"),
-        ("strategy", f"{prefix}strategy/crm_exit.html", "CRM Exit"),
-        ("3m_cross", f"{prefix}strategy/3m_cross.html", "3Min Cross"),
-        ("insights", f"{prefix}insights/index.html",    "Insights"),
+        ("home",        f"{prefix}index.html",                "Dashboard"),
+        ("strategy",    f"{prefix}strategy/crm_exit.html",    "CRM Exit"),
+        ("3m_cross",    f"{prefix}strategy/3m_cross.html",    "3Min Cross GC"),
+        ("3m_cross_cl", f"{prefix}strategy/3m_cross_cl.html", "3Min Cross CL"),
+        ("insights",    f"{prefix}insights/index.html",       "Insights"),
     ]
     nav_html = ""
     for key, href, label in nav_items:
@@ -610,11 +611,13 @@ def build_insights(insights):
 
 # ── PUBLISH PAGE ──────────────────────────────────────────────────────────────
 
-def build_publish_page(project_id):
+def build_publish_page(project_id, filename="publish.md", active_key=None):
     import markdown as md
-    f = CONTENT / "projects" / project_id / "publish.md"
+    f = CONTENT / "projects" / project_id / filename
     if not f.exists():
         return None
+    if active_key is None:
+        active_key = project_id
 
     raw  = f.read_text()
     # strip frontmatter
@@ -651,7 +654,7 @@ strong{{color:#e6edf3}}
 </div>
 """
     title = f.read_text().split("title:")[1].split("\n")[0].strip() if "title:" in f.read_text() else project_id
-    return shell(title, content, active=project_id, depth=1)
+    return shell(title, content, active=active_key, depth=1)
 
 
 # ── MAIN ───────────────────────────────────────────────────────────────────────
@@ -690,6 +693,11 @@ def main():
     if p:
         (DOCS / "strategy" / "3m_cross.html").write_text(p)
         print("  ✓ strategy/3m_cross.html")
+
+    p_cl = build_publish_page("3m_cross", filename="publish_CL.md", active_key="3m_cross_cl")
+    if p_cl:
+        (DOCS / "strategy" / "3m_cross_cl.html").write_text(p_cl)
+        print("  ✓ strategy/3m_cross_cl.html")
 
     print(f"\n  Site → {DOCS}/")
     print(f"  Push to GitHub → live at https://sameerbode.github.io/trading-research\n")
