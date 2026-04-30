@@ -18,9 +18,10 @@ a:hover{color:#79c0ff}
 .nav-link:hover{color:#e6edf3}
 .nav-link.active{color:#e6edf3;border-bottom-color:#3fb950}
 .dropdown{position:relative;display:inline-block}
-.dropdown-btn{background:none;border:none;color:#8b949e;font:500 13px 'Inter',sans-serif;padding:0 12px;height:56px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.dropdown-btn{background:none;border:none;color:#8b949e;font:500 13px 'Inter',sans-serif;padding:0 12px;height:56px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;border-bottom:2px solid transparent}
 .dropdown-btn:hover{color:#e6edf3}
-.dropdown-menu{display:none;position:absolute;top:56px;left:0;background:#161b22;border:1px solid #30363d;border-radius:6px;min-width:120px;padding:4px 0;z-index:200}
+.dropdown-btn.active{color:#e6edf3;border-bottom-color:#3fb950}
+.dropdown-menu{display:none;position:absolute;top:56px;left:0;background:#161b22;border:1px solid #30363d;border-radius:6px;min-width:160px;padding:4px 0;z-index:200}
 .dropdown:hover .dropdown-menu{display:block}
 .dropdown-item{display:block;padding:7px 14px;color:#8b949e;font-size:13px}
 .dropdown-item:hover{color:#e6edf3;background:#21262d}
@@ -35,6 +36,7 @@ a:hover{color:#79c0ff}
 .card-value{font-size:28px;font-weight:700;letter-spacing:-1px}
 .card-sub{font-size:12px;color:#8b949e;margin-top:4px}
 .section-title{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #21262d}
+.section-divider{border:none;border-top:1px solid #21262d;margin:32px 0}
 .chart-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:24px;margin-bottom:24px}
 .chart-title{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:4px}
 .chart-sub{font-size:12px;color:#8b949e;margin-bottom:16px}
@@ -48,6 +50,7 @@ tr:last-child td{border-bottom:none}
 .badge-red{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
 .badge-blue{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid rgba(88,166,255,.3)}
 .badge-gray{background:rgba(139,148,158,.15);color:#8b949e;border:1px solid rgba(139,148,158,.3)}
+.badge-orange{background:rgba(240,136,62,.15);color:#f0883e;border:1px solid rgba(240,136,62,.3)}
 .insight-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px;margin-bottom:16px}
 .insight-title{font-size:15px;font-weight:600;margin-bottom:8px}
 .insight-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -70,28 +73,22 @@ footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1p
 <nav class="navbar">
   <div class="brand">Trading<span>Research</span></div>
   <a href="../index.html" class="nav-link ">Dashboard</a>
-<a href="../strategy/crm_exit.html" class="nav-link ">CRM Exit</a>
-<a href="../strategy/3m_cross.html" class="nav-link ">3Min Cross GC</a>
-<a href="../strategy/3m_cross_cl.html" class="nav-link ">3Min Cross CL</a>
 <a href="../insights/index.html" class="nav-link active">Insights</a>
 
   <div class="dropdown">
+    <button class="dropdown-btn ">Strategies ▾</button>
+    <div class="dropdown-menu"><a href="../strategy/crm_exit.html" class="dropdown-item">CRM Exit</a><a href="../strategy/3m_cross.html" class="dropdown-item">3Min Cross GC</a><a href="../strategy/3m_cross_cl.html" class="dropdown-item">3Min Cross CL</a></div>
+  </div>
+  <div class="dropdown">
     <button class="dropdown-btn">Tickers ▾</button>
-    <div class="dropdown-menu"><a href="../tickers/aapl.html" class="dropdown-item">AAPL</a>
-<a href="../tickers/msft.html" class="dropdown-item">MSFT</a>
-<a href="../tickers/googl.html" class="dropdown-item">GOOGL</a>
-<a href="../tickers/amzn.html" class="dropdown-item">AMZN</a>
-<a href="../tickers/nvda.html" class="dropdown-item">NVDA</a>
-<a href="../tickers/meta.html" class="dropdown-item">META</a>
-<a href="../tickers/tsla.html" class="dropdown-item">TSLA</a>
-</div>
+    <div class="dropdown-menu"><a href="../tickers/aapl.html" class="dropdown-item">AAPL</a><a href="../tickers/msft.html" class="dropdown-item">MSFT</a><a href="../tickers/googl.html" class="dropdown-item">GOOGL</a><a href="../tickers/amzn.html" class="dropdown-item">AMZN</a><a href="../tickers/nvda.html" class="dropdown-item">NVDA</a><a href="../tickers/meta.html" class="dropdown-item">META</a><a href="../tickers/tsla.html" class="dropdown-item">TSLA</a><div style="height:1px;background:#30363d;margin:4px 0"></div><a href="../tickers/gc.html" class="dropdown-item">GC <span style="color:#f0883e;font-size:10px">FUT</span></a><a href="../tickers/cl.html" class="dropdown-item">CL <span style="color:#f0883e;font-size:10px">FUT</span></a></div>
   </div>
   <div style="margin-left:auto;color:#484f58;font-size:12px">Updated Apr 29, 2026</div>
 </nav>
 <div class="container">
 
 <div class="page-title">Insights</div>
-<div class="page-sub">Lessons learned, observations, and decisions — captured as they happen</div>
+<div class="page-sub">Lessons learned, observations, and decisions — across all strategies</div>
 <div style="max-width:800px">
 
 <div class="insight-card impact-medium">
@@ -99,6 +96,7 @@ footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1p
   <div class="insight-meta">
     <span style="color:#8b949e;font-size:12px">📅 2026-04-25</span>
     <span class="badge badge-blue">medium impact</span>
+    <span class="badge badge-blue">CRM Exit</span>
     <span class="tag">entry</span> <span class="tag">channel-width</span> <span class="tag">filter</span> <span class="tag">crm_exit</span>
   </div>
   <div class="insight-body">Observed consistently across TSLA, NVDA, and MSFT: when the EMA34/EMA50 channel width is very small (< $0.20 for large-cap stocks), the entry signals are noise.<br><br>Examples from TSLA:<br>- T3 (Ch $0.15): +1.86% stock, +17.34% options — accidental winner<br>- T11 (Ch $0.13): -1.43% stock, -38.71% options<br>- T13 (Ch $0.74) into T14 (Ch $0.71): back-to-back shorts at the same zone<br><br>NVDA examples: T7 ($0.10), T8 ($0.02), T9 ($0.10) — all entered same consolidation zone. T8 loses, T9 wins, both noise.<br><br>When EMA34 and EMA50 are nearly flat and compressed, the channel has no directional information. Any close outside it is statistically meaningless — price will snap back inside almost immediately.<br><br>**Candidate filter:** Require ch_width >= $X before taking a trade. Threshold TBD — needs to be calibrated per ticker given different price levels. Percentage-based threshold may be better than absolute dollar amount.<br><br>Not applied yet — noted for V3.1 testing.</div>
@@ -108,6 +106,7 @@ footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1p
   <div class="insight-meta">
     <span style="color:#8b949e;font-size:12px">📅 2026-04-25</span>
     <span class="badge badge-red">high impact</span>
+    <span class="badge badge-blue">CRM Exit</span>
     <span class="tag">options</span> <span class="tag">risk</span> <span class="tag">black-scholes</span> <span class="tag">crm_exit</span>
   </div>
   <div class="insight-body">Running Black-Scholes options simulation (ATM, next Friday >= 2 weeks, HV20 as IV) across all MAG7:<br><br>**Amplification on winners:**<br>- TSLA T16: +5.01% stock → +91.00% options<br>- TSLA T17: +5.90% stock → +93.98% options<br>- MSFT T15: +13.10% stock → +552.44% options (one outlier driving entire MSFT result)<br>- AAPL T1: +7.13% stock → +318.57% options<br>- AMZN T16: +12.82% stock → +377.32% options<br><br>**Punishment on losers:**<br>- TSLA T2: -3.52% stock → -64.28% options<br>- NVDA T1: -2.66% stock → -71.29% options<br>- GOOGL T13: -4.99% stock → -70.44% options<br><br>**The pattern:** Options are roughly 12-18x leveraged on 5%+ moves. On 1-2% moves, theta eats most of the gain. On losses >= 2.5%, options lose 50-75%.<br><br>**Key implication:** This strategy in options is NOT a high-frequency small-winner game. It's a **momentum capture** game — you need the 5%+ moves to make the math work. The 8/21 exit is critical because it holds long enough to catch those moves while small-move trades roughly break even.<br><br>**Risk note:** IV was 28-50% across the test period (TSLA). Real options pricing may differ. No bid-ask spread modeled. Results are directionally correct but not exact.</div>
@@ -117,6 +116,7 @@ footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1p
   <div class="insight-meta">
     <span style="color:#8b949e;font-size:12px">📅 2026-04-25</span>
     <span class="badge badge-red">high impact</span>
+    <span class="badge badge-blue">CRM Exit</span>
     <span class="tag">exit</span> <span class="tag">v2</span> <span class="tag">v3</span> <span class="tag">crm_exit</span> <span class="tag">rule-change</span>
   </div>
   <div class="insight-body">When V2.0 introduced the rejection candle entry, it also added an "opposite side close" exit — if price closed back through the channel in the wrong direction, exit the trade.<br><br>This felt conservative but destroyed performance. V2.0 with opposite side close: **-2.84%, 26% win rate**.<br><br>The rule was exiting trades that were temporarily pulling back through the channel, then continuing in the bias direction. The exit fired on noise, not on real invalidation.<br><br>Proof: controlled test with identical V2.0 entry points, only changing the exit — 8/21 cross alone produced **+3.57%** vs **-2.85%** with the opposite side close rule on the same entries.<br><br>**Lesson:** A stop rule that exits you from good trades is worse than no stop at all. The 1H bias is the filter — if bias is intact, the trade is intact. Let the momentum exit (8/21 cross) do its job.</div>
@@ -126,6 +126,7 @@ footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1p
   <div class="insight-meta">
     <span style="color:#8b949e;font-size:12px">📅 2026-04-25</span>
     <span class="badge badge-red">high impact</span>
+    <span class="badge badge-blue">CRM Exit</span>
     <span class="tag">exit</span> <span class="tag">options</span> <span class="tag">theta</span> <span class="tag">crm_exit</span>
   </div>
   <div class="insight-body">Tested three exits on identical TSLA entry points (no opposite side close):<br><br>| Exit  | Trades | Win% | Stock PnL | Options PnL |<br>|-------|--------|------|-----------|-------------|<br>| 34/50 | 9      | 55.6%| +5.28%    | -17.12%     |<br>| 8/21  | 20     | 65.0%| +11.60%   | +178.13%    |<br>| 5/12  | 25     | 52.0%| +3.34%    | +57.92%     |<br><br>**8/21 wins on every metric.** The key reasons:<br><br>- **vs 34/50**: Holds too long. Theta eats options premium even on winning stock trades. T2 in V2.3a held 18 days for +0.80% stock move — option lost 64.56%.<br>- **vs 5/12**: Too fast. Fires on the first leg and misses the continuation. More trades but smaller average winners. Re-entry noise inflates trade count.<br><br>The 8/21 cross sits in the sweet spot — exits fast enough to preserve options premium, slow enough to ride the real directional moves (3–7 day holds).<br><br>**For options specifically:** 14–18 DTE at entry + 8/21 exit = enough time for a real move to develop before theta dominates.</div>

@@ -6,18 +6,19 @@ Usage:
     python3 generate_site.py
 
 GitHub Pages setup:
-    Settings → Pages → Source: Deploy from branch → main → /docs
+    Settings → Pages → Source: GitHub Actions (custom deploy.yml)
     Site: https://sameerbode.github.io/trading-research
 """
 import json, re, os
 from pathlib import Path
 from datetime import datetime
 
-ROOT     = Path(__file__).parent
-CONTENT  = ROOT / "content"
-DOCS     = ROOT / "docs"
-TICKERS  = ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA"]
-TODAY    = datetime.now().strftime("%b %d, %Y")
+ROOT    = Path(__file__).parent
+CONTENT = ROOT / "content"
+DOCS    = ROOT / "docs"
+TICKERS = ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA"]
+FUTURES = ["GC", "CL"]
+TODAY   = datetime.now().strftime("%b %d, %Y")
 
 DOCS.mkdir(exist_ok=True)
 (DOCS / "tickers").mkdir(exist_ok=True)
@@ -42,46 +43,108 @@ def load_latest_backtest(project_id):
     if not files: return None
     return json.loads(files[0].read_text())
 
+def load_3m_cross_bt(symbol):
+    path = CONTENT / "projects" / "3m_cross" / "backtests"
+    files = sorted(path.glob(f"{symbol}_v1_*.json"), reverse=True)
+    if not files: return None
+    return json.loads(files[0].read_text())
+
 def load_strategy(sid):
     f = CONTENT / "projects" / sid / "meta.json"
     return json.loads(f.read_text()) if f.exists() else None
 
-def load_insights(project_id):
+def load_insights():
+    """Aggregate insights from all project insight folders + content/insights/."""
     insights = []
-    for f in sorted((CONTENT / "projects" / project_id / "insights").glob("*.md"), reverse=True):
-        text = f.read_text()
-        meta = {}
-        m = re.search(r'^---\n(.*?)\n---', text, re.DOTALL)
-        if m:
-            for line in m.group(1).split('\n'):
-                if ':' in line:
-                    k,v = line.split(':',1)
-                    meta[k.strip()] = v.strip()
-            body_start = text.index('---', 3) + 3
-            meta['body'] = text[body_start:].strip()
-        meta['file'] = f.stem
-        insights.append(meta)
-    return insights
+    proj_root = CONTENT / "projects"
+    if proj_root.exists():
+        for proj_dir in sorted(proj_root.iterdir()):
+            if not proj_dir.is_dir(): continue
+            ins_dir = proj_dir / "insights"
+            if not ins_dir.exists(): continue
+            for f in sorted(ins_dir.glob("*.md"), reverse=True):
+                text = f.read_text()
+                meta = {"strategy": proj_dir.name}
+                m = re.search(r'^---\n(.*?)\n---', text, re.DOTALL)
+                if m:
+                    for line in m.group(1).split('\n'):
+                        if ':' in line:
+                            k, v = line.split(':', 1)
+                            meta[k.strip()] = v.strip()
+                    body_start = text.index('---', 3) + 3
+                    meta['body'] = text[body_start:].strip()
+                meta['file'] = f.stem
+                insights.append(meta)
+    shared_dir = CONTENT / "insights"
+    if shared_dir.exists():
+        for f in sorted(shared_dir.glob("*.md"), reverse=True):
+            text = f.read_text()
+            meta = {"strategy": "shared"}
+            m = re.search(r'^---\n(.*?)\n---', text, re.DOTALL)
+            if m:
+                for line in m.group(1).split('\n'):
+                    if ':' in line:
+                        k, v = line.split(':', 1)
+                        meta[k.strip()] = v.strip()
+                body_start = text.index('---', 3) + 3
+                meta['body'] = text[body_start:].strip()
+            meta['file'] = f.stem
+            insights.append(meta)
+    return sorted(insights, key=lambda x: x.get("date", ""), reverse=True)
+
+def bucket_stats_from_bt(bt, direction=None):
+    """Per-bucket PnL stats from a 3m_cross backtest JSON."""
+    if not bt: return {}
+    closed = [t for t in bt["trades"] if not t.get("open_end")]
+    if direction:
+        closed = [t for t in closed if t["dir"] == direction]
+    result = {}
+    for dr in [True, False]:
+        for wr in [True, False]:
+            label = f"{'D↑' if dr else 'D↓'}/{'W↑' if wr else 'W↓'}"
+            bucket = [t for t in closed if t["bx_rising"] == dr and t["wbx_rising"] == wr]
+            wins = [t for t in bucket if t["pnl"] > 0]
+            result[label] = {
+                "n": len(bucket),
+                "pnl": round(sum(t["pnl"] for t in bucket), 2),
+                "wr": round(len(wins) / len(bucket) * 100, 1) if bucket else 0,
+            }
+    return result
 
 # ── HTML shell ─────────────────────────────────────────────────────────────────
 
 def shell(title, content, active="home", depth=0):
     prefix = "../" * depth
-    nav_items = [
-        ("home",        f"{prefix}index.html",                "Dashboard"),
-        ("strategy",    f"{prefix}strategy/crm_exit.html",    "CRM Exit"),
-        ("3m_cross",    f"{prefix}strategy/3m_cross.html",    "3Min Cross GC"),
-        ("3m_cross_cl", f"{prefix}strategy/3m_cross_cl.html", "3Min Cross CL"),
-        ("insights",    f"{prefix}insights/index.html",       "Insights"),
+
+    nav_links = [
+        ("home",     f"{prefix}index.html",          "Dashboard"),
+        ("insights", f"{prefix}insights/index.html", "Insights"),
     ]
+    strategy_links = [
+        (f"{prefix}strategy/crm_exit.html",    "CRM Exit"),
+        (f"{prefix}strategy/3m_cross.html",    "3Min Cross GC"),
+        (f"{prefix}strategy/3m_cross_cl.html", "3Min Cross CL"),
+    ]
+
     nav_html = ""
-    for key, href, label in nav_items:
+    for key, href, label in nav_links:
         cls = "active" if key == active else ""
         nav_html += f'<a href="{href}" class="nav-link {cls}">{label}</a>\n'
 
-    ticker_links = ""
-    for t in TICKERS:
-        ticker_links += f'<a href="{prefix}tickers/{t.lower()}.html" class="dropdown-item">{t}</a>\n'
+    strat_active = "active" if active in ("strategy", "3m_cross", "3m_cross_cl") else ""
+    strat_items  = "".join(
+        f'<a href="{href}" class="dropdown-item">{label}</a>' for href, label in strategy_links
+    )
+
+    ticker_items = "".join(
+        f'<a href="{prefix}tickers/{t.lower()}.html" class="dropdown-item">{t}</a>' for t in TICKERS
+    )
+    ticker_items += '<div style="height:1px;background:#30363d;margin:4px 0"></div>'
+    ticker_items += "".join(
+        f'<a href="{prefix}tickers/{t.lower()}.html" class="dropdown-item">'
+        f'{t} <span style="color:#f0883e;font-size:10px">FUT</span></a>'
+        for t in FUTURES
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -103,9 +166,10 @@ a:hover{{color:#79c0ff}}
 .nav-link:hover{{color:#e6edf3}}
 .nav-link.active{{color:#e6edf3;border-bottom-color:#3fb950}}
 .dropdown{{position:relative;display:inline-block}}
-.dropdown-btn{{background:none;border:none;color:#8b949e;font:500 13px 'Inter',sans-serif;padding:0 12px;height:56px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}}
+.dropdown-btn{{background:none;border:none;color:#8b949e;font:500 13px 'Inter',sans-serif;padding:0 12px;height:56px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;border-bottom:2px solid transparent}}
 .dropdown-btn:hover{{color:#e6edf3}}
-.dropdown-menu{{display:none;position:absolute;top:56px;left:0;background:#161b22;border:1px solid #30363d;border-radius:6px;min-width:120px;padding:4px 0;z-index:200}}
+.dropdown-btn.active{{color:#e6edf3;border-bottom-color:#3fb950}}
+.dropdown-menu{{display:none;position:absolute;top:56px;left:0;background:#161b22;border:1px solid #30363d;border-radius:6px;min-width:160px;padding:4px 0;z-index:200}}
 .dropdown:hover .dropdown-menu{{display:block}}
 .dropdown-item{{display:block;padding:7px 14px;color:#8b949e;font-size:13px}}
 .dropdown-item:hover{{color:#e6edf3;background:#21262d}}
@@ -120,6 +184,7 @@ a:hover{{color:#79c0ff}}
 .card-value{{font-size:28px;font-weight:700;letter-spacing:-1px}}
 .card-sub{{font-size:12px;color:#8b949e;margin-top:4px}}
 .section-title{{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #21262d}}
+.section-divider{{border:none;border-top:1px solid #21262d;margin:32px 0}}
 .chart-card{{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:24px;margin-bottom:24px}}
 .chart-title{{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:4px}}
 .chart-sub{{font-size:12px;color:#8b949e;margin-bottom:16px}}
@@ -133,6 +198,7 @@ tr:last-child td{{border-bottom:none}}
 .badge-red{{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}}
 .badge-blue{{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid rgba(88,166,255,.3)}}
 .badge-gray{{background:rgba(139,148,158,.15);color:#8b949e;border:1px solid rgba(139,148,158,.3)}}
+.badge-orange{{background:rgba(240,136,62,.15);color:#f0883e;border:1px solid rgba(240,136,62,.3)}}
 .insight-card{{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px;margin-bottom:16px}}
 .insight-title{{font-size:15px;font-weight:600;margin-bottom:8px}}
 .insight-meta{{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}}
@@ -156,8 +222,12 @@ footer{{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1
   <div class="brand">Trading<span>Research</span></div>
   {nav_html}
   <div class="dropdown">
+    <button class="dropdown-btn {strat_active}">Strategies ▾</button>
+    <div class="dropdown-menu">{strat_items}</div>
+  </div>
+  <div class="dropdown">
     <button class="dropdown-btn">Tickers ▾</button>
-    <div class="dropdown-menu">{ticker_links}</div>
+    <div class="dropdown-menu">{ticker_items}</div>
   </div>
   <div style="margin-left:auto;color:#484f58;font-size:12px">Updated {TODAY}</div>
 </nav>
@@ -187,231 +257,275 @@ def fig_to_div(fig, div_id, height=360):
     return pio.to_html(fig, include_plotlyjs=False, full_html=False, div_id=div_id,
                        config={"responsive": True, "displayModeBar": False})
 
-# ── INDEX PAGE ─────────────────────────────────────────────────────────────────
+# ── INDEX PAGE (multi-strategy dashboard) ─────────────────────────────────────
 
-def build_index(bt, strategy):
+def build_index(bt_crm, strategy, gc_bt, cl_bt):
     import plotly.graph_objects as go
 
-    tickers  = list(bt["tickers"].keys())
-    summaries = {t: bt["tickers"][t]["summary"] for t in tickers}
+    # ── CRM Exit data ─────────────────────────────────────────────────────────
+    tickers   = list(bt_crm["tickers"].keys())
+    summaries = {t: bt_crm["tickers"][t]["summary"] for t in tickers}
+    crm_total = sum(s["trades"] for s in summaries.values())
+    crm_avg_wr = sum(s["win_rate"] for s in summaries.values()) / len(summaries)
+    crm_best   = max(summaries, key=lambda t: summaries[t]["total_pnl"])
 
-    # summary stats
-    total_trades  = sum(s["trades"] for s in summaries.values())
-    avg_win_rate  = sum(s["win_rate"] for s in summaries.values()) / len(summaries)
-    best_stock    = max(summaries, key=lambda t: summaries[t]["total_pnl"])
-    best_opts     = max(summaries, key=lambda t: summaries[t]["opt_total_pnl"])
+    # ── 3Min Cross data ───────────────────────────────────────────────────────
+    gc_s = gc_bt["summary"] if gc_bt else {}
+    cl_s = cl_bt["summary"] if cl_bt else {}
 
-    # ── Chart 1: PnL comparison ───────────────────────────────────────────────
-    sorted_t = sorted(tickers, key=lambda t: summaries[t]["total_pnl"])
+    BUCKET_LABELS = ["D↑/W↑", "D↑/W↓", "D↓/W↑", "D↓/W↓"]
+    gc_long_b = bucket_stats_from_bt(gc_bt, "LONG")
+    cl_long_b = bucket_stats_from_bt(cl_bt, "LONG")
+
+    # ── Chart 1: CRM Exit PnL by ticker ───────────────────────────────────────
+    sorted_t  = sorted(tickers, key=lambda t: summaries[t]["total_pnl"])
     stock_pnls = [summaries[t]["total_pnl"] for t in sorted_t]
     opt_pnls   = [summaries[t]["opt_total_pnl"] for t in sorted_t]
 
     fig1 = go.Figure()
-    fig1.add_trace(go.Bar(name="Stock PnL %", x=sorted_t, y=stock_pnls, marker_color=["#3fb950" if v>=0 else "#f85149" for v in stock_pnls], text=[pct(v) for v in stock_pnls], textposition="outside"))
-    fig1.add_trace(go.Bar(name="Options PnL %", x=sorted_t, y=opt_pnls, marker_color=["#388bfd" if v>=0 else "#da3633" for v in opt_pnls], opacity=0.75, text=[pct(v) for v in opt_pnls], textposition="outside"))
+    fig1.add_trace(go.Bar(
+        name="Stock PnL %", x=sorted_t, y=stock_pnls,
+        marker_color=["#3fb950" if v>=0 else "#f85149" for v in stock_pnls],
+        text=[pct(v) for v in stock_pnls], textposition="outside"))
+    fig1.add_trace(go.Bar(
+        name="Options PnL %", x=sorted_t, y=opt_pnls,
+        marker_color=["#388bfd" if v>=0 else "#da3633" for v in opt_pnls],
+        opacity=0.75, text=[pct(v) for v in opt_pnls], textposition="outside"))
     fig1.add_hline(y=0, line_color="#30363d", line_width=1)
     fig1.update_layout(barmode="group", yaxis_ticksuffix="%", showlegend=True)
-    chart1 = fig_to_div(fig1, "chart-pnl", 380)
+    chart_crm_pnl = fig_to_div(fig1, "chart-crm-pnl", 360)
 
-    # ── Chart 2: Win Rate + PF ────────────────────────────────────────────────
+    # ── Chart 2: CRM Exit win rate ─────────────────────────────────────────────
     sorted_wr = sorted(tickers, key=lambda t: summaries[t]["win_rate"])
     win_rates  = [summaries[t]["win_rate"] for t in sorted_wr]
-    pfs        = [summaries[t]["pf"] or 0 for t in sorted_wr]
-
     fig2 = go.Figure()
-    fig2.add_trace(go.Bar(name="Win Rate %", x=sorted_wr, y=win_rates, marker_color=["#3fb950" if v>=50 else "#f85149" for v in win_rates], text=[f"{v:.1f}%" for v in win_rates], textposition="outside", yaxis="y"))
-    fig2.add_hline(y=50, line_color="#388bfd", line_dash="dash", line_width=1, annotation_text="50%", annotation_position="right")
-    chart2 = fig_to_div(fig2, "chart-wr", 320)
+    fig2.add_trace(go.Bar(
+        name="Win Rate %", x=sorted_wr, y=win_rates,
+        marker_color=["#3fb950" if v>=50 else "#f85149" for v in win_rates],
+        text=[f"{v:.1f}%" for v in win_rates], textposition="outside"))
+    fig2.add_hline(y=50, line_color="#388bfd", line_dash="dash", line_width=1,
+                   annotation_text="50%", annotation_position="right")
+    chart_crm_wr = fig_to_div(fig2, "chart-crm-wr", 300)
 
-    # ── Chart 3: Profit Factor ────────────────────────────────────────────────
+    # ── Chart 3: CRM Exit profit factor ───────────────────────────────────────
     sorted_pf = sorted(tickers, key=lambda t: summaries[t]["pf"] or 0)
     pf_vals = [summaries[t]["pf"] or 0 for t in sorted_pf]
     fig3 = go.Figure()
-    fig3.add_trace(go.Bar(name="Profit Factor", x=sorted_pf, y=pf_vals, marker_color=["#3fb950" if v>=1 else "#f85149" for v in pf_vals], text=[f"{v:.2f}" for v in pf_vals], textposition="outside"))
-    fig3.add_hline(y=1, line_color="#388bfd", line_dash="dash", line_width=1, annotation_text="1.0", annotation_position="right")
-    chart3 = fig_to_div(fig3, "chart-pf", 320)
+    fig3.add_trace(go.Bar(
+        name="Profit Factor", x=sorted_pf, y=pf_vals,
+        marker_color=["#3fb950" if v>=1 else "#f85149" for v in pf_vals],
+        text=[f"{v:.2f}" for v in pf_vals], textposition="outside"))
+    fig3.add_hline(y=1, line_color="#388bfd", line_dash="dash", line_width=1,
+                   annotation_text="1.0", annotation_position="right")
+    chart_crm_pf = fig_to_div(fig3, "chart-crm-pf", 300)
 
-    # ── Chart 4: Stock vs Options scatter ─────────────────────────────────────
+    # ── Chart 4: 3Min Cross — bucket long PnL comparison (GC vs CL) ──────────
+    gc_lp = [gc_long_b.get(b, {}).get("pnl", 0) for b in BUCKET_LABELS] if gc_long_b else []
+    cl_lp = [cl_long_b.get(b, {}).get("pnl", 0) for b in BUCKET_LABELS] if cl_long_b else []
     fig4 = go.Figure()
-    for t in tickers:
-        s = summaries[t]
-        fig4.add_trace(go.Scatter(
-            x=[s["total_pnl"]], y=[s["opt_total_pnl"]],
-            mode="markers+text", name=t,
-            text=[t], textposition="top center",
-            marker=dict(size=14, line=dict(width=1, color="#30363d")),
-            hovertemplate=f"<b>{t}</b><br>Stock: {pct(s['total_pnl'])}<br>Options: {pct(s['opt_total_pnl'])}<extra></extra>"
-        ))
-    fig4.add_vline(x=0, line_color="#30363d", line_width=1)
+    if gc_lp:
+        fig4.add_trace(go.Bar(
+            name="GC Long PnL", x=BUCKET_LABELS, y=gc_lp,
+            marker_color=["#3fb950" if v>=0 else "#f85149" for v in gc_lp],
+            text=[pct(v) for v in gc_lp], textposition="outside"))
+    if cl_lp:
+        fig4.add_trace(go.Bar(
+            name="CL Long PnL", x=BUCKET_LABELS, y=cl_lp,
+            marker_color=["#388bfd" if v>=0 else "#da3633" for v in cl_lp],
+            opacity=0.8, text=[pct(v) for v in cl_lp], textposition="outside"))
     fig4.add_hline(y=0, line_color="#30363d", line_width=1)
-    fig4.update_layout(xaxis_title="Stock PnL %", yaxis_title="Options PnL %", showlegend=False, xaxis_ticksuffix="%", yaxis_ticksuffix="%")
-    chart4 = fig_to_div(fig4, "chart-scatter", 360)
+    fig4.update_layout(barmode="group", yaxis_ticksuffix="%")
+    chart_3m_buckets = fig_to_div(fig4, "chart-3m-buckets", 360)
 
-    # ── Summary table ─────────────────────────────────────────────────────────
-    rows = ""
+    # ── Chart 5: 3Min Cross — equity curves GC + CL ───────────────────────────
+    fig5 = go.Figure()
+    for sym, bt, col in [("GC", gc_bt, "#3fb950"), ("CL", cl_bt, "#388bfd")]:
+        if not bt: continue
+        closed = sorted([t for t in bt["trades"] if not t.get("open_end")],
+                        key=lambda x: x["entry_ts"])
+        cum = []; running = 0
+        for t in closed:
+            running += t["pnl"]; cum.append(round(running, 3))
+        fig5.add_trace(go.Scatter(
+            x=list(range(1, len(cum)+1)), y=cum, name=sym,
+            line=dict(color=col, width=2),
+            hovertemplate=f"<b>{sym}</b><br>Trade %{{x}}<br>Cum PnL: %{{y:.2f}}%<extra></extra>"))
+    fig5.add_hline(y=0, line_color="#30363d", line_width=1)
+    fig5.update_layout(xaxis_title="Trade #", yaxis_ticksuffix="%", showlegend=True,
+                       legend=dict(orientation="h", y=1.1))
+    chart_3m_equity = fig_to_div(fig5, "chart-3m-equity", 300)
+
+    # ── CRM Exit summary table ─────────────────────────────────────────────────
+    crm_rows = ""
     for t in sorted(tickers, key=lambda t: summaries[t]["total_pnl"], reverse=True):
         s = summaries[t]
-        sc = color(s["total_pnl"]); oc = color(s["opt_total_pnl"])
-        wrc = "#3fb950" if s["win_rate"]>=50 else "#f85149"
-        pf_v = s["pf"]; pfc = "#3fb950" if pf_v and pf_v>=1 else "#f85149"
-        pf_str = f"{pf_v:.2f}" if pf_v else "—"
-        rows += f"""<tr>
+        sc  = color(s["total_pnl"]); oc = color(s["opt_total_pnl"])
+        wrc = "#3fb950" if s["win_rate"] >= 50 else "#f85149"
+        pf_v = s["pf"]
+        crm_rows += f"""<tr>
           <td><a href="tickers/{t.lower()}.html" style="font-weight:600;color:#e6edf3">{t}</a></td>
           <td>{s['trades']}</td>
           <td style="color:{wrc};font-weight:600">{s['win_rate']}%</td>
           <td style="color:{sc};font-weight:600">{pct(s['total_pnl'])}</td>
-          <td style="color:{pfc};font-weight:600">{pf_str}</td>
-          <td>{s['opt_trades']}</td>
+          <td style="color:{'#3fb950' if pf_v and pf_v>=1 else '#f85149'};font-weight:600">{f'{pf_v:.2f}' if pf_v else '—'}</td>
           <td style="color:{oc};font-weight:600">{pct(s['opt_total_pnl'])}</td>
         </tr>"""
 
+    # ── 3Min Cross summary cards ───────────────────────────────────────────────
+    def futures_card(sym, s):
+        if not s: return '<div class="card"><div class="card-title">—</div></div>'
+        sc = color(s.get("total_pnl")); wrc = "#3fb950" if s.get("win_rate",0)>=50 else "#f85149"
+        pf_v = s.get("pf"); dw = s.get("data_window", bt["data_window"] if bt else "")
+        return f"""<div class="card">
+          <div class="card-title">3Min Cross — {sym}</div>
+          <div class="card-value" style="color:{sc}">{pct(s.get('total_pnl'))}</div>
+          <div class="card-sub">Win {s.get('win_rate',0):.1f}% · PF {f'{pf_v:.3f}' if pf_v else '—'} · <a href="tickers/{sym.lower()}.html">{s.get('trades',0):,} trades</a></div>
+        </div>"""
+
     content = f"""
-<div class="page-title">MAG7 Strategy Dashboard</div>
-<div class="page-sub">V3.0 CRM Exit · {bt['data_window']} · CST RTH · Updated {TODAY}</div>
+<div class="page-title">Trading Research Dashboard</div>
+<div class="page-sub">2 Active Strategies · CRM Exit (MAG7 Equities) · 3Min Cross (GC &amp; CL Futures) · {TODAY}</div>
 
 <div class="grid-4">
   <div class="card">
-    <div class="card-title">Total Trades</div>
-    <div class="card-value">{total_trades}</div>
-    <div class="card-sub">Across all 7 tickers</div>
+    <div class="card-title">Active Strategies</div>
+    <div class="card-value">2</div>
+    <div class="card-sub">CRM Exit · 3Min Cross</div>
   </div>
   <div class="card">
-    <div class="card-title">Avg Win Rate</div>
-    <div class="card-value" style="color:{'#3fb950' if avg_win_rate>=50 else '#f85149'}">{avg_win_rate:.1f}%</div>
-    <div class="card-sub">Across all tickers</div>
+    <div class="card-title">CRM Exit — Best Ticker</div>
+    <div class="card-value" style="color:#3fb950">{crm_best}</div>
+    <div class="card-sub">{pct(summaries[crm_best]['total_pnl'])} stock · {crm_total:,} total trades · Avg WR {crm_avg_wr:.1f}%</div>
   </div>
-  <div class="card">
-    <div class="card-title">Best Stock PnL</div>
-    <div class="card-value" style="color:#3fb950">{best_stock}</div>
-    <div class="card-sub">{pct(summaries[best_stock]['total_pnl'])} stock return</div>
-  </div>
-  <div class="card">
-    <div class="card-title">Best Options PnL</div>
-    <div class="card-value" style="color:#388bfd">{best_opts}</div>
-    <div class="card-sub">{pct(summaries[best_opts]['opt_total_pnl'])} options return</div>
-  </div>
+  {futures_card("GC", gc_s)}
+  {futures_card("CL", cl_s)}
 </div>
+
+<hr class="section-divider">
+<div class="section-title">CRM Exit — MAG7 Equities &nbsp;<span class="badge badge-blue">V3.0</span></div>
 
 <div class="chart-card">
   <div class="chart-title">Stock PnL vs Options PnL by Ticker</div>
-  <div class="chart-sub">Options dramatically amplify winning moves — and losing ones</div>
-  {chart1}
+  <div class="chart-sub">{bt_crm.get('data_window','')} · Options dramatically amplify winning moves</div>
+  {chart_crm_pnl}
 </div>
 
 <div class="grid-2">
   <div class="chart-card" style="margin-bottom:0">
     <div class="chart-title">Win Rate by Ticker</div>
     <div class="chart-sub">Reference line at 50% — above = statistical edge</div>
-    {chart2}
+    {chart_crm_wr}
   </div>
   <div class="chart-card" style="margin-bottom:0">
     <div class="chart-title">Profit Factor by Ticker</div>
     <div class="chart-sub">Reference line at 1.0 — above = profitable</div>
-    {chart3}
+    {chart_crm_pf}
   </div>
 </div>
 <br>
-
-<div class="chart-card">
-  <div class="chart-title">Stock PnL vs Options PnL — Quadrant View</div>
-  <div class="chart-sub">Top-right = winning both. Top-left = options beat stock. Bottom = avoid.</div>
-  {chart4}
-</div>
-
-<div class="section-title">All Tickers Summary</div>
 <div class="chart-card" style="padding:0;overflow:hidden">
 <table>
-  <thead><tr>
-    <th>Ticker</th><th>Trades</th><th>Win %</th><th>Stock PnL</th><th>Profit Factor</th><th>Opt Trades</th><th>Options PnL</th>
-  </tr></thead>
-  <tbody>{rows}</tbody>
+  <thead><tr><th>Ticker</th><th>Trades</th><th>Win%</th><th>Stock PnL</th><th>Profit Factor</th><th>Options PnL</th></tr></thead>
+  <tbody>{crm_rows}</tbody>
 </table>
+</div>
+
+<hr class="section-divider">
+<div class="section-title">3Min 34/50 Cross — Futures &nbsp;<span class="badge badge-orange">V1.0</span></div>
+
+<div class="chart-card">
+  <div class="chart-title">Long PnL by Bucket — GC vs CL (10-Year)</div>
+  <div class="chart-sub">D↑/D↓ = daily BX rising/falling · W↑/W↓ = weekly BX rising/falling · Apr 2016 – Apr 2026</div>
+  {chart_3m_buckets}
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">Cumulative Equity Curve — All Trades (no filter)</div>
+  <div class="chart-sub">Every EMA34/50 cross taken, both directions, 10-year window</div>
+  {chart_3m_equity}
 </div>
 """
     return shell("Dashboard", content, active="home", depth=0)
 
-# ── TICKER PAGE ────────────────────────────────────────────────────────────────
+# ── TICKER PAGE (equity: CRM Exit data) ───────────────────────────────────────
 
 def build_ticker(ticker, bt):
     import plotly.graph_objects as go
 
-    data     = bt["tickers"][ticker]
-    s        = data["summary"]
-    trades   = data["trades"]
-    valid    = [t for t in trades if not t["open_end"]]
-    wins     = [t for t in valid if t["pnl"] > 0]
-    losses   = [t for t in valid if t["pnl"] <= 0]
-    opt_v    = [t for t in valid if t.get("opt_pnl") is not None]
+    data   = bt["tickers"][ticker]
+    s      = data["summary"]
+    trades = data["trades"]
+    valid  = [t for t in trades if not t["open_end"]]
+    wins   = [t for t in valid if t["pnl"] > 0]
+    losses = [t for t in valid if t["pnl"] <= 0]
+    opt_v  = [t for t in valid if t.get("opt_pnl") is not None]
 
-    # ── Chart 1: Equity curve ─────────────────────────────────────────────────
-    cumstock = []; cumopt = []; labels = []
-    cs = co = 0
+    cumstock = []; cumopt = []; cs = co = 0
     for i, t in enumerate(valid):
         cs += t["pnl"]; cumstock.append(round(cs, 3))
-        if t.get("opt_pnl") is not None:
-            co += t["opt_pnl"]; cumopt.append(round(co, 3))
-        else:
-            cumopt.append(None)
-        labels.append(f"T{i+1} {t['entry_ts'][:10]}")
+        co += t.get("opt_pnl") or 0; cumopt.append(round(co, 3) if t.get("opt_pnl") is not None else None)
 
     fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(x=list(range(1,len(cumstock)+1)), y=cumstock, name="Stock PnL", line=dict(color="#3fb950", width=2), fill="tozeroy", fillcolor="rgba(63,185,80,0.08)", hovertemplate="Trade %{x}<br>Cumulative: %{y:.2f}%<extra>Stock</extra>"))
-    fig1.add_trace(go.Scatter(x=list(range(1,len(cumopt)+1)), y=cumopt, name="Options PnL", line=dict(color="#388bfd", width=2), fill="tozeroy", fillcolor="rgba(56,139,253,0.06)", hovertemplate="Trade %{x}<br>Cumulative: %{y:.2f}%<extra>Options</extra>"))
+    fig1.add_trace(go.Scatter(x=list(range(1,len(cumstock)+1)), y=cumstock, name="Stock PnL",
+        line=dict(color="#3fb950", width=2), fill="tozeroy", fillcolor="rgba(63,185,80,0.08)",
+        hovertemplate="Trade %{x}<br>Cumulative: %{y:.2f}%<extra>Stock</extra>"))
+    fig1.add_trace(go.Scatter(x=list(range(1,len(cumopt)+1)), y=cumopt, name="Options PnL",
+        line=dict(color="#388bfd", width=2), fill="tozeroy", fillcolor="rgba(56,139,253,0.06)",
+        hovertemplate="Trade %{x}<br>Cumulative: %{y:.2f}%<extra>Options</extra>"))
     fig1.add_hline(y=0, line_color="#30363d", line_width=1)
-    fig1.update_layout(xaxis_title="Trade #", yaxis_ticksuffix="%", showlegend=True, legend=dict(orientation="h", y=1.1))
+    fig1.update_layout(xaxis_title="Trade #", yaxis_ticksuffix="%", showlegend=True,
+                       legend=dict(orientation="h", y=1.1))
     chart1 = fig_to_div(fig1, f"chart-equity-{ticker}", 300)
 
-    # ── Chart 2: Trade scatter (duration vs PnL) ──────────────────────────────
     fig2 = go.Figure()
     for t in valid:
-        col  = "#3fb950" if t["pnl"]>0 else "#f85149"
+        col = "#3fb950" if t["pnl"]>0 else "#f85149"
         fig2.add_trace(go.Scatter(
-            x=[t["days"]], y=[t["pnl"]],
-            mode="markers",
-            marker=dict(size=max(8, t["ch_width"]*4), color=col, opacity=0.8, line=dict(width=1, color="#30363d")),
-            name="W" if t["pnl"]>0 else "L",
-            showlegend=False,
-            hovertemplate=f"<b>T{valid.index(t)+1}</b><br>{t['entry_ts'][:10]}<br>{t['dir']} {pct(t['pnl'])}<br>Days: {t['days']}<br>Ch Width: ${t['ch_width']:.2f}<extra></extra>"
-        ))
+            x=[t["days"]], y=[t["pnl"]], mode="markers",
+            marker=dict(size=max(8, t["ch_width"]*4), color=col, opacity=0.8,
+                        line=dict(width=1, color="#30363d")),
+            name="W" if t["pnl"]>0 else "L", showlegend=False,
+            hovertemplate=f"<b>T{valid.index(t)+1}</b><br>{t['entry_ts'][:10]}<br>"
+                          f"{t['dir']} {pct(t['pnl'])}<br>Days: {t['days']}<br>"
+                          f"Ch Width: ${t['ch_width']:.2f}<extra></extra>"))
     fig2.add_hline(y=0, line_color="#30363d", line_width=1)
-    fig2.update_layout(xaxis_title="Days Held", yaxis_title="PnL %", yaxis_ticksuffix="%", showlegend=False)
+    fig2.update_layout(xaxis_title="Days Held", yaxis_title="PnL %", yaxis_ticksuffix="%")
     chart2 = fig_to_div(fig2, f"chart-scatter-{ticker}", 300)
 
-    # ── Chart 3: Win/Loss donut ───────────────────────────────────────────────
     fig3 = go.Figure(go.Pie(
         labels=["Winners","Losers"], values=[len(wins),len(losses)],
         marker=dict(colors=["#3fb950","#f85149"]),
-        hole=0.6, textinfo="label+percent", hoverinfo="label+value"
-    ))
-    fig3.add_annotation(text=f"{s['win_rate']}%<br><span style='font-size:10px'>Win</span>", x=0.5, y=0.5, showarrow=False, font=dict(size=18, color="#e6edf3"))
+        hole=0.6, textinfo="label+percent", hoverinfo="label+value"))
+    fig3.add_annotation(text=f"{s['win_rate']}%<br><span style='font-size:10px'>Win</span>",
+                        x=0.5, y=0.5, showarrow=False, font=dict(size=18, color="#e6edf3"))
     chart3 = fig_to_div(fig3, f"chart-donut-{ticker}", 260)
 
-    # ── Chart 4: Options vs Stock per trade ───────────────────────────────────
     if opt_v:
         fig4 = go.Figure()
-        cols = ["#3fb950" if t["opt_pnl"]>0 else "#f85149" for t in opt_v]
-        hover = [f"T{valid.index(t)+1} {t['entry_ts'][:10]}<br>Stock: {pct(t['pnl'])}<br>Options: {pct(t['opt_pnl'])}" for t in opt_v]
+        cols  = ["#3fb950" if t["opt_pnl"]>0 else "#f85149" for t in opt_v]
+        hover = [f"T{valid.index(t)+1} {t['entry_ts'][:10]}<br>Stock: {pct(t['pnl'])}<br>Options: {pct(t['opt_pnl'])}"
+                 for t in opt_v]
         fig4.add_trace(go.Scatter(
             x=[t["pnl"] for t in opt_v], y=[t["opt_pnl"] for t in opt_v],
-            mode="markers", marker=dict(size=10, color=cols, opacity=0.85, line=dict(width=1,color="#30363d")),
-            hovertemplate="%{customdata}<extra></extra>", customdata=hover
-        ))
+            mode="markers", marker=dict(size=10, color=cols, opacity=0.85,
+                                        line=dict(width=1, color="#30363d")),
+            hovertemplate="%{customdata}<extra></extra>", customdata=hover))
         fig4.add_vline(x=0, line_color="#30363d", line_width=1)
         fig4.add_hline(y=0, line_color="#30363d", line_width=1)
-        fig4.update_layout(xaxis_title="Stock PnL %", yaxis_title="Options PnL %", xaxis_ticksuffix="%", yaxis_ticksuffix="%", showlegend=False)
+        fig4.update_layout(xaxis_title="Stock PnL %", yaxis_title="Options PnL %",
+                           xaxis_ticksuffix="%", yaxis_ticksuffix="%", showlegend=False)
         chart4 = fig_to_div(fig4, f"chart-opts-{ticker}", 300)
     else:
         chart4 = "<p style='color:#8b949e;text-align:center;padding:40px'>No options data</p>"
 
-    # ── Trade table ───────────────────────────────────────────────────────────
     rows = ""
     for i, t in enumerate(trades):
-        pnl_s  = pct(t["pnl"]) if not t["open_end"] else "open"
-        pnl_c  = color(t.get("pnl")) if not t["open_end"] else "#f0883e"
-        opt_s  = pct(t.get("opt_pnl")) if t.get("opt_pnl") is not None else "—"
-        opt_c  = color(t.get("opt_pnl"))
-        dir_b  = f'<span class="badge badge-{"green" if t["dir"]=="LONG" else "red"}">{t["dir"]}</span>'
-        entry  = t["entry_ts"][5:16].replace("T"," ")
+        pnl_s = pct(t["pnl"]) if not t["open_end"] else "open"
+        pnl_c = color(t.get("pnl")) if not t["open_end"] else "#f0883e"
+        opt_s = pct(t.get("opt_pnl")) if t.get("opt_pnl") is not None else "—"
+        opt_c = color(t.get("opt_pnl"))
+        dir_b = f'<span class="badge badge-{"green" if t["dir"]=="LONG" else "red"}">{t["dir"]}</span>'
+        entry = t["entry_ts"][5:16].replace("T"," ")
         exit_s = t["exit_ts"][5:16].replace("T"," ") if not t["open_end"] else '<span style="color:#f0883e">open</span>'
         rows += f"""<tr>
           <td style="color:#8b949e">{i+1}</td>
@@ -426,7 +540,6 @@ def build_ticker(ticker, bt):
           <td style="color:{opt_c};font-weight:600">{opt_s}</td>
         </tr>"""
 
-    # ticker nav
     ticker_nav = '<div class="ticker-nav">'
     for t in TICKERS:
         cls = "active" if t == ticker else ""
@@ -434,28 +547,24 @@ def build_ticker(ticker, bt):
     ticker_nav += "</div>"
 
     sc = color(s["total_pnl"]); oc = color(s["opt_total_pnl"])
-    wrc = "#3fb950" if s["win_rate"]>=50 else "#f85149"
+    wrc = "#3fb950" if s["win_rate"] >= 50 else "#f85149"
     pf_v = s["pf"]
 
     content = f"""
 <div class="page-title">{ticker}</div>
 <div class="page-sub">V3.0 CRM Exit · {bt['data_window']} · {s['trades']} trades</div>
-
 {ticker_nav}
-
 <div class="grid-4">
   <div class="card"><div class="card-title">Win Rate</div><div class="card-value" style="color:{wrc}">{s['win_rate']}%</div><div class="card-sub">{s['winners']}W / {s['losers']}L</div></div>
   <div class="card"><div class="card-title">Stock PnL</div><div class="card-value" style="color:{sc}">{pct(s['total_pnl'])}</div><div class="card-sub">Avg W: {pct(s['avg_win'])} / L: {pct(s['avg_loss'])}</div></div>
   <div class="card"><div class="card-title">Profit Factor</div><div class="card-value" style="color:{'#3fb950' if pf_v and pf_v>=1 else '#f85149'}">{f'{pf_v:.2f}' if pf_v else '—'}</div><div class="card-sub">Gross win / gross loss</div></div>
   <div class="card"><div class="card-title">Options PnL</div><div class="card-value" style="color:{oc}">{pct(s['opt_total_pnl'])}</div><div class="card-sub">{s['opt_winners']}W / {s['opt_trades']-s['opt_winners']}L · {s['opt_win_rate']}% win</div></div>
 </div>
-
 <div class="chart-card">
   <div class="chart-title">Cumulative Equity Curve</div>
   <div class="chart-sub">Stock and options PnL accumulated trade by trade</div>
   {chart1}
 </div>
-
 <div class="grid-2">
   <div class="chart-card" style="margin-bottom:0">
     <div class="chart-title">Trade Duration vs PnL</div>
@@ -474,7 +583,6 @@ def build_ticker(ticker, bt):
   <div class="chart-sub">Shows amplification — big stock moves = outsized options wins (and losses)</div>
   {chart4}
 </div>
-
 <div class="section-title">All Trades</div>
 <div class="chart-card" style="padding:0;overflow:hidden;overflow-x:auto">
 <table>
@@ -485,7 +593,158 @@ def build_ticker(ticker, bt):
 """
     return shell(ticker, content, active="tickers", depth=1)
 
-# ── STRATEGY PAGE ──────────────────────────────────────────────────────────────
+# ── TICKER PAGE (futures: 3Min Cross data) ────────────────────────────────────
+
+def build_futures_ticker(symbol, bt):
+    import plotly.graph_objects as go
+    if not bt: return None
+
+    s      = bt["summary"]
+    closed = sorted([t for t in bt["trades"] if not t.get("open_end")],
+                    key=lambda x: x["entry_ts"])
+    winners = [t for t in closed if t["pnl"] > 0]
+    losers  = [t for t in closed if t["pnl"] <= 0]
+
+    BUCKET_LABELS = ["D↑/W↑", "D↑/W↓", "D↓/W↑", "D↓/W↓"]
+
+    # ── Equity curve ──────────────────────────────────────────────────────────
+    cum = []; running = 0
+    for t in closed:
+        running += t["pnl"]; cum.append(round(running, 3))
+
+    fig1 = go.Figure()
+    fig1.add_trace(go.Scatter(
+        x=list(range(1, len(cum)+1)), y=cum, name="Cumulative PnL %",
+        line=dict(color="#3fb950", width=2), fill="tozeroy",
+        fillcolor="rgba(63,185,80,0.08)",
+        hovertemplate="Trade %{x}<br>Cumulative: %{y:.2f}%<extra></extra>"))
+    fig1.add_hline(y=0, line_color="#30363d", line_width=1)
+    fig1.update_layout(xaxis_title="Trade #", yaxis_ticksuffix="%")
+    chart1 = fig_to_div(fig1, f"chart-equity-{symbol}", 300)
+
+    # ── Bucket PnL bar chart (longs and shorts side by side) ──────────────────
+    long_b  = bucket_stats_from_bt(bt, "LONG")
+    short_b = bucket_stats_from_bt(bt, "SHORT")
+    lp = [long_b.get(b, {}).get("pnl", 0)  for b in BUCKET_LABELS]
+    sp = [short_b.get(b, {}).get("pnl", 0) for b in BUCKET_LABELS]
+
+    fig2 = go.Figure()
+    fig2.add_trace(go.Bar(
+        name="Long PnL", x=BUCKET_LABELS, y=lp,
+        marker_color=["#3fb950" if v>=0 else "#f85149" for v in lp],
+        text=[pct(v) for v in lp], textposition="outside"))
+    fig2.add_trace(go.Bar(
+        name="Short PnL", x=BUCKET_LABELS, y=sp,
+        marker_color=["#388bfd" if v>=0 else "#da3633" for v in sp],
+        opacity=0.8, text=[pct(v) for v in sp], textposition="outside"))
+    fig2.add_hline(y=0, line_color="#30363d", line_width=1)
+    fig2.update_layout(barmode="group", yaxis_ticksuffix="%")
+    chart2 = fig_to_div(fig2, f"chart-buckets-{symbol}", 340)
+
+    # ── Win Rate by bucket (longs) ─────────────────────────────────────────────
+    long_wrs = [long_b.get(b, {}).get("wr", 0) for b in BUCKET_LABELS]
+    fig3 = go.Figure()
+    fig3.add_trace(go.Bar(
+        name="Long Win Rate", x=BUCKET_LABELS, y=long_wrs,
+        marker_color=["#3fb950" if v>=28 else "#f85149" for v in long_wrs],
+        text=[f"{v:.1f}%" for v in long_wrs], textposition="outside"))
+    fig3.add_hline(y=s.get("win_rate", 28), line_color="#388bfd", line_dash="dash",
+                   line_width=1, annotation_text="Avg", annotation_position="right")
+    fig3.update_layout(yaxis_title="Win Rate %", yaxis_ticksuffix="%")
+    chart3 = fig_to_div(fig3, f"chart-wr-{symbol}", 280)
+
+    # ── Win/Loss donut ─────────────────────────────────────────────────────────
+    fig4 = go.Figure(go.Pie(
+        labels=["Winners","Losers"], values=[len(winners), len(losers)],
+        marker=dict(colors=["#3fb950","#f85149"]),
+        hole=0.6, textinfo="label+percent", hoverinfo="label+value"))
+    fig4.add_annotation(text=f"{s['win_rate']:.1f}%<br><span style='font-size:10px'>Win</span>",
+                        x=0.5, y=0.5, showarrow=False, font=dict(size=18, color="#e6edf3"))
+    chart4 = fig_to_div(fig4, f"chart-donut-{symbol}", 260)
+
+    # ── Bucket summary table ───────────────────────────────────────────────────
+    all_b = bucket_stats_from_bt(bt)
+    bucket_rows = ""
+    for b in BUCKET_LABELS:
+        lb = long_b.get(b, {"n":0,"pnl":0,"wr":0})
+        sb = short_b.get(b, {"n":0,"pnl":0,"wr":0})
+        combined = round(lb["pnl"] + sb["pnl"], 2)
+        lc = color(lb["pnl"]); sc2 = color(sb["pnl"]); cc = color(combined)
+        bucket_rows += f"""<tr>
+          <td style="font-weight:600">{b}</td>
+          <td style="color:#8b949e">{lb['n']}</td>
+          <td style="color:#8b949e">{lb['wr']:.1f}%</td>
+          <td style="color:{lc};font-weight:600">{pct(lb['pnl'])}</td>
+          <td style="color:#8b949e">{sb['n']}</td>
+          <td style="color:#8b949e">{sb['wr']:.1f}%</td>
+          <td style="color:{sc2};font-weight:600">{pct(sb['pnl'])}</td>
+          <td style="color:{cc};font-weight:600">{pct(combined)}</td>
+        </tr>"""
+
+    # Futures ticker nav
+    futures_nav = '<div class="ticker-nav">'
+    for f in FUTURES:
+        cls = "active" if f == symbol else ""
+        futures_nav += f'<a href="{f.lower()}.html" class="ticker-btn {cls}">{f}</a>'
+    futures_nav += "</div>"
+
+    sc_main = color(s["total_pnl"])
+    wrc = "#3fb950" if s["win_rate"] >= 50 else "#f85149"
+    pf_v = s["pf"]
+
+    content = f"""
+<div class="page-title">{symbol} — Futures</div>
+<div class="page-sub">3Min 34/50 Cross · V1.0 · {bt.get('data_window','')} · {s['trades']:,} closed trades</div>
+{futures_nav}
+<div class="grid-4">
+  <div class="card"><div class="card-title">Win Rate</div><div class="card-value" style="color:{wrc}">{s['win_rate']:.1f}%</div><div class="card-sub">{s['winners']:,}W / {s['losers']:,}L</div></div>
+  <div class="card"><div class="card-title">Total PnL (all trades)</div><div class="card-value" style="color:{sc_main}">{pct(s['total_pnl'])}</div><div class="card-sub">Unfiltered — every cross</div></div>
+  <div class="card"><div class="card-title">Profit Factor</div><div class="card-value" style="color:{'#3fb950' if pf_v and pf_v>=1 else '#f85149'}">{f'{pf_v:.3f}' if pf_v else '—'}</div><div class="card-sub">Gross win / gross loss</div></div>
+  <div class="card"><div class="card-title">Avg Win / Avg Loss</div><div class="card-value" style="font-size:20px;color:#3fb950">{pct(s['avg_win'])}</div><div class="card-sub">Avg loss: <span style="color:#f85149">{pct(s['avg_loss'])}</span></div></div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">Cumulative Equity Curve — All Trades</div>
+  <div class="chart-sub">Every EMA34/50 cross taken, both directions, unfiltered</div>
+  {chart1}
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">Bucket PnL — Long vs Short (10-Year)</div>
+  <div class="chart-sub">Total PnL % per daily BX × weekly BX direction bucket</div>
+  {chart2}
+</div>
+
+<div class="grid-2">
+  <div class="chart-card" style="margin-bottom:0">
+    <div class="chart-title">Long Win Rate by Bucket</div>
+    <div class="chart-sub">Dashed line = overall average win rate</div>
+    {chart3}
+  </div>
+  <div class="chart-card" style="margin-bottom:0">
+    <div class="chart-title">Win / Loss Split</div>
+    <div class="chart-sub">All closed trades</div>
+    {chart4}
+  </div>
+</div>
+<br>
+
+<div class="section-title">Bucket Summary — Long &amp; Short</div>
+<div class="chart-card" style="padding:0;overflow:hidden">
+<table>
+  <thead><tr>
+    <th>Bucket</th>
+    <th>Long Trades</th><th>Long WR</th><th>Long PnL</th>
+    <th>Short Trades</th><th>Short WR</th><th>Short PnL</th>
+    <th>Combined PnL</th>
+  </tr></thead>
+  <tbody>{bucket_rows}</tbody>
+</table>
+</div>
+"""
+    return shell(f"{symbol} Futures", content, active="tickers", depth=1)
+
+# ── STRATEGY PAGE (CRM Exit detail) ───────────────────────────────────────────
 
 def build_strategy(strategy, bt):
     import plotly.graph_objects as go
@@ -493,28 +752,29 @@ def build_strategy(strategy, bt):
     versions = strategy["versions"]
     v_names  = [v["version"] for v in versions]
     v_pnls   = [v.get("tsla_stock_pnl", 0) for v in versions]
-    v_wrs    = [v.get("tsla_win_rate", 0) for v in versions]
-    v_trades = [v.get("tsla_trades", 0) for v in versions]
 
-    # ── Chart: Version evolution ──────────────────────────────────────────────
     fig1 = go.Figure()
-    fig1.add_trace(go.Bar(name="Stock PnL %", x=v_names, y=v_pnls, marker_color=["#3fb950" if v>=0 else "#f85149" for v in v_pnls], text=[f"{pct(v)}" for v in v_pnls], textposition="outside"))
+    fig1.add_trace(go.Bar(name="Stock PnL %", x=v_names, y=v_pnls,
+        marker_color=["#3fb950" if v>=0 else "#f85149" for v in v_pnls],
+        text=[f"{pct(v)}" for v in v_pnls], textposition="outside"))
     fig1.add_hline(y=0, line_color="#30363d", line_width=1)
     fig1.update_layout(xaxis_title="Version", yaxis_ticksuffix="%", showlegend=False)
     chart1 = fig_to_div(fig1, "chart-versions", 320)
 
-    # ── Exit comparison chart ─────────────────────────────────────────────────
     exits = ["34/50 only", "8/21 only (V3)", "5/12 only"]
     stock = [5.28, 11.60, 3.34]
     opts  = [-17.12, 178.13, 57.92]
     fig2 = go.Figure()
-    fig2.add_trace(go.Bar(name="Stock PnL %", x=exits, y=stock, marker_color=["#3fb950" if v>=0 else "#f85149" for v in stock], text=[pct(v) for v in stock], textposition="outside"))
-    fig2.add_trace(go.Bar(name="Options PnL %", x=exits, y=opts, marker_color=["#388bfd" if v>=0 else "#da3633" for v in opts], text=[pct(v) for v in opts], textposition="outside", opacity=0.8))
+    fig2.add_trace(go.Bar(name="Stock PnL %", x=exits, y=stock,
+        marker_color=["#3fb950" if v>=0 else "#f85149" for v in stock],
+        text=[pct(v) for v in stock], textposition="outside"))
+    fig2.add_trace(go.Bar(name="Options PnL %", x=exits, y=opts,
+        marker_color=["#388bfd" if v>=0 else "#da3633" for v in opts],
+        text=[pct(v) for v in opts], textposition="outside", opacity=0.8))
     fig2.add_hline(y=0, line_color="#30363d", line_width=1)
     fig2.update_layout(barmode="group", yaxis_ticksuffix="%")
     chart2 = fig_to_div(fig2, "chart-exits", 340)
 
-    # ── Version cards ─────────────────────────────────────────────────────────
     version_rows = ""
     for v in versions:
         pnl_c = "#3fb950" if v.get("tsla_stock_pnl",0)>=0 else "#f85149"
@@ -541,7 +801,6 @@ def build_strategy(strategy, bt):
     content = f"""
 <div class="page-title">CRM Exit Strategy</div>
 <div class="page-sub">Channel Rejection + Momentum Exit · V3.0 · Active</div>
-
 <div class="grid-2">
   <div>
     <div class="section-title">Current Rules — V3.0</div>
@@ -558,19 +817,16 @@ def build_strategy(strategy, bt):
     <div class="chart-card" style="padding:12px">{question_html}</div>
   </div>
 </div>
-
 <div class="chart-card">
   <div class="chart-title">TSLA Stock PnL — Strategy Version Evolution</div>
   <div class="chart-sub">Every version tested on the same TSLA 60-day window</div>
   {chart1}
 </div>
-
 <div class="chart-card">
   <div class="chart-title">Exit EMA Comparison (V3.0 entry rules, no opposite side close)</div>
   <div class="chart-sub">8/21 exit dominates — best stock PnL and by far best options PnL</div>
   {chart2}
 </div>
-
 <div class="section-title">Version History</div>
 <div class="chart-card" style="padding:0;overflow:hidden;overflow-x:auto">
 <table>
@@ -581,13 +837,21 @@ def build_strategy(strategy, bt):
 """
     return shell("Strategy — CRM Exit", content, active="strategy", depth=1)
 
-# ── INSIGHTS PAGE ──────────────────────────────────────────────────────────────
+# ── INSIGHTS PAGE (aggregated across all strategies) ──────────────────────────
+
+STRATEGY_LABELS = {
+    "crm_exit":  ("CRM Exit",    "badge-blue"),
+    "3m_cross":  ("3Min Cross",  "badge-orange"),
+    "shared":    ("Shared",      "badge-gray"),
+}
 
 def build_insights(insights):
     cards = ""
     for ins in insights:
-        impact = ins.get("impact","medium")
-        tags   = [t.strip() for t in ins.get("tags","").strip("[]").split(",") if t.strip()]
+        impact   = ins.get("impact","medium")
+        strat_id = ins.get("strategy","")
+        strat_label, strat_badge = STRATEGY_LABELS.get(strat_id, (strat_id, "badge-gray"))
+        tags     = [t.strip() for t in ins.get("tags","").strip("[]").split(",") if t.strip()]
         tag_html = " ".join(f'<span class="tag">{t}</span>' for t in tags)
         cards += f"""
 <div class="insight-card impact-{impact}">
@@ -595,6 +859,7 @@ def build_insights(insights):
   <div class="insight-meta">
     <span style="color:#8b949e;font-size:12px">📅 {ins.get('date','')}</span>
     <span class="badge badge-{'red' if impact=='high' else 'blue' if impact=='medium' else 'gray'}">{impact} impact</span>
+    <span class="badge {strat_badge}">{strat_label}</span>
     {tag_html}
   </div>
   <div class="insight-body">{ins.get('body','').replace(chr(10),'<br>')}</div>
@@ -602,14 +867,14 @@ def build_insights(insights):
 
     content = f"""
 <div class="page-title">Insights</div>
-<div class="page-sub">Lessons learned, observations, and decisions — captured as they happen</div>
+<div class="page-sub">Lessons learned, observations, and decisions — across all strategies</div>
 <div style="max-width:800px">
 {cards}
 </div>
 """
     return shell("Insights", content, active="insights", depth=1)
 
-# ── PUBLISH PAGE ──────────────────────────────────────────────────────────────
+# ── PUBLISH PAGE (markdown strategy write-ups) ────────────────────────────────
 
 def build_publish_page(project_id, filename="publish.md", active_key=None):
     import markdown as md
@@ -620,12 +885,8 @@ def build_publish_page(project_id, filename="publish.md", active_key=None):
         active_key = project_id
 
     raw  = f.read_text()
-    # strip frontmatter
     body = re.sub(r'^---\n.*?\n---\n', '', raw, flags=re.DOTALL).strip()
-
     html = md.markdown(body, extensions=["tables", "fenced_code"])
-
-    # inject site styling onto generated elements
     html = html.replace('<table>', '<table class="publish-table">')
     html = html.replace('<blockquote>', '<blockquote class="publish-quote">')
 
@@ -653,7 +914,7 @@ strong{{color:#e6edf3}}
 {html}
 </div>
 """
-    title = f.read_text().split("title:")[1].split("\n")[0].strip() if "title:" in f.read_text() else project_id
+    title = raw.split("title:")[1].split("\n")[0].strip() if "title:" in raw else project_id
     return shell(title, content, active=active_key, depth=1)
 
 
@@ -661,34 +922,43 @@ strong{{color:#e6edf3}}
 
 def main():
     print("\nBuilding site...\n")
-    bt       = load_latest_backtest("crm_exit")
+    bt_crm   = load_latest_backtest("crm_exit")
     strategy = load_strategy("crm_exit")
-    insights = load_insights("crm_exit")
+    insights = load_insights()
+    gc_bt    = load_3m_cross_bt("GC")
+    cl_bt    = load_3m_cross_bt("CL")
 
-    if not bt:
-        print("  No backtest data found in content/projects/crm_exit/backtests/"); return
+    if not bt_crm:
+        print("  No CRM Exit backtest found in content/projects/crm_exit/backtests/"); return
 
-    # Index
-    (DOCS / "index.html").write_text(build_index(bt, strategy))
+    # Dashboard
+    (DOCS / "index.html").write_text(build_index(bt_crm, strategy, gc_bt, cl_bt))
     print("  ✓ index.html")
 
-    # Strategy
+    # CRM Exit strategy detail
     if strategy:
-        (DOCS / "strategy" / "crm_exit.html").write_text(build_strategy(strategy, bt))
+        (DOCS / "strategy" / "crm_exit.html").write_text(build_strategy(strategy, bt_crm))
         print("  ✓ strategy/crm_exit.html")
 
-    # Tickers
+    # Equity ticker pages
     for ticker in TICKERS:
-        if ticker in bt["tickers"]:
-            (DOCS / "tickers" / f"{ticker.lower()}.html").write_text(build_ticker(ticker, bt))
+        if ticker in bt_crm["tickers"]:
+            (DOCS / "tickers" / f"{ticker.lower()}.html").write_text(build_ticker(ticker, bt_crm))
             print(f"  ✓ tickers/{ticker.lower()}.html")
+
+    # Futures ticker pages
+    for sym, bt in [("GC", gc_bt), ("CL", cl_bt)]:
+        p = build_futures_ticker(sym, bt)
+        if p:
+            (DOCS / "tickers" / f"{sym.lower()}.html").write_text(p)
+            print(f"  ✓ tickers/{sym.lower()}.html")
 
     # Insights
     if insights:
         (DOCS / "insights" / "index.html").write_text(build_insights(insights))
         print("  ✓ insights/index.html")
 
-    # Publish pages
+    # Strategy write-up pages
     p = build_publish_page("3m_cross")
     if p:
         (DOCS / "strategy" / "3m_cross.html").write_text(p)
