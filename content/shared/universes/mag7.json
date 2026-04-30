@@ -1,0 +1,6 @@
+{
+  "id": "mag7",
+  "name": "MAG7",
+  "description": "Magnificent 7 — mega-cap US tech",
+  "tickers": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"]
+}

@@ -48,13 +48,14 @@ Stats from 10-year backtest (Apr 2016 – Apr 2026). ✅ = take the trade · ❌
 | Bucket | Long | Short |
 |:---:|:---|:---|
 | **D↑ / W↑**<br>Daily momentum building<br>Weekly momentum building | ✅<br>Win Rate: 28.8%<br>Avg Win: +9.2 pts<br>Avg Loss: -3.3 pts<br>Total PnL: +29.20% | ❌<br>Win Rate: 26.4%<br>Avg Win: +9.4 pts<br>Avg Loss: -3.2 pts<br>Total PnL: -2.25% |
-| **D↑ / W↓**<br>Daily momentum building<br>Weekly momentum falling | ❌<br>Win Rate: 29.2%<br>Avg Win: +8.1 pts<br>Avg Loss: -2.9 pts<br>Total PnL: +23.49% | ❌<br>Win Rate: 26.4%<br>Avg Win: +6.3 pts<br>Avg Loss: -2.8 pts<br>Total PnL: -32.00% |
+| **D↑ / W↓**<br>Daily momentum building<br>Weekly momentum falling | ⚠️<br>Win Rate: 29.2%<br>Avg Win: +8.1 pts<br>Avg Loss: -2.9 pts<br>Total PnL: +23.49% | ❌<br>Win Rate: 26.4%<br>Avg Win: +6.3 pts<br>Avg Loss: -2.8 pts<br>Total PnL: -32.00% |
 | **D↓ / W↑**<br>Daily momentum falling<br>Weekly momentum building | ✅<br>Win Rate: 29.9%<br>Avg Win: +9.2 pts<br>Avg Loss: -2.9 pts<br>Total PnL: +51.13% | ❌<br>Win Rate: 27.8%<br>Avg Win: +7.4 pts<br>Avg Loss: -3.1 pts<br>Total PnL: -14.19% |
 | **D↓ / W↓**<br>Daily momentum falling<br>Weekly momentum falling | ❌<br>Win Rate: 27.9%<br>Avg Win: +7.5 pts<br>Avg Loss: -2.8 pts<br>Total PnL: +3.78% | ✅<br>Win Rate: 27.7%<br>Avg Win: +8.5 pts<br>Avg Loss: -3.0 pts<br>Total PnL: +12.38% |
 
 > **Rule of thumb:** Weekly BX direction = trade direction. W↑ → longs only. W↓ → shorts only.
 > Best setups are D↓/W↑ long and D↓/W↓ short — daily pulling back into the weekly trend.
-> D↑/W↓ in either direction = skip entirely.
+> ⚠️ D↑/W↓ long is positive over 10 years (+23.49%) but driven by GC's secular bull run — not a confirmed structural edge. Trade with caution in clearly bullish regimes only.
+> ❌ D↑/W↓ short = worst bucket in the entire table. Skip always.
 
 ---
 

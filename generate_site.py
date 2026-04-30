@@ -36,18 +36,19 @@ def pct(v, dec=2):
     if v is None: return "—"
     return f"{'+' if v>=0 else ''}{v:.{dec}f}%"
 
-def load_latest_backtest():
-    files = sorted((CONTENT / "backtests").glob("*.json"), reverse=True)
+def load_latest_backtest(project_id):
+    path = CONTENT / "projects" / project_id / "backtests"
+    files = sorted(path.glob("*.json"), reverse=True)
     if not files: return None
     return json.loads(files[0].read_text())
 
 def load_strategy(sid):
-    f = CONTENT / "strategies" / f"{sid}.json"
+    f = CONTENT / "projects" / sid / "meta.json"
     return json.loads(f.read_text()) if f.exists() else None
 
-def load_insights():
+def load_insights(project_id):
     insights = []
-    for f in sorted((CONTENT / "insights").glob("*.md"), reverse=True):
+    for f in sorted((CONTENT / "projects" / project_id / "insights").glob("*.md"), reverse=True):
         text = f.read_text()
         meta = {}
         m = re.search(r'^---\n(.*?)\n---', text, re.DOTALL)
@@ -67,9 +68,10 @@ def load_insights():
 def shell(title, content, active="home", depth=0):
     prefix = "../" * depth
     nav_items = [
-        ("home",     f"{prefix}index.html",           "Dashboard"),
-        ("strategy", f"{prefix}strategy/crm_exit.html","Strategy"),
-        ("insights", f"{prefix}insights/index.html",   "Insights"),
+        ("home",     f"{prefix}index.html",             "Dashboard"),
+        ("strategy", f"{prefix}strategy/crm_exit.html", "CRM Exit"),
+        ("3m_cross", f"{prefix}strategy/3m_cross.html", "3Min Cross"),
+        ("insights", f"{prefix}insights/index.html",    "Insights"),
     ]
     nav_html = ""
     for key, href, label in nav_items:
@@ -606,16 +608,62 @@ def build_insights(insights):
 """
     return shell("Insights", content, active="insights", depth=1)
 
+# ── PUBLISH PAGE ──────────────────────────────────────────────────────────────
+
+def build_publish_page(project_id):
+    import markdown as md
+    f = CONTENT / "projects" / project_id / "publish.md"
+    if not f.exists():
+        return None
+
+    raw  = f.read_text()
+    # strip frontmatter
+    body = re.sub(r'^---\n.*?\n---\n', '', raw, flags=re.DOTALL).strip()
+
+    html = md.markdown(body, extensions=["tables", "fenced_code"])
+
+    # inject site styling onto generated elements
+    html = html.replace('<table>', '<table class="publish-table">')
+    html = html.replace('<blockquote>', '<blockquote class="publish-quote">')
+
+    content = f"""
+<style>
+.publish-wrap{{max-width:900px}}
+.publish-wrap h2{{font-size:18px;font-weight:700;margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid #21262d}}
+.publish-wrap h3{{font-size:14px;font-weight:600;margin:24px 0 10px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px}}
+.publish-wrap p{{color:#8b949e;font-size:13px;line-height:1.8;margin-bottom:12px}}
+.publish-wrap ul,.publish-wrap ol{{color:#8b949e;font-size:13px;line-height:1.8;padding-left:20px;margin-bottom:12px}}
+.publish-wrap li{{margin-bottom:4px}}
+.publish-wrap code{{background:#21262d;border-radius:4px;padding:2px 6px;font-size:12px;color:#79c0ff}}
+.publish-wrap pre{{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;overflow-x:auto;margin-bottom:16px}}
+.publish-wrap pre code{{background:none;padding:0;color:#e6edf3;font-size:12px}}
+.publish-table{{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px}}
+.publish-table th{{background:#21262d;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;text-align:left;border-bottom:1px solid #30363d}}
+.publish-table td{{padding:12px 14px;border-bottom:1px solid #21262d;vertical-align:top;color:#e6edf3;line-height:1.7}}
+.publish-table tr:hover td{{background:#1c2128}}
+.publish-table tr:last-child td{{border-bottom:none}}
+.publish-quote{{border-left:3px solid #388bfd;margin:16px 0;padding:12px 16px;background:#161b22;border-radius:0 6px 6px 0}}
+.publish-quote p{{margin:0;color:#8b949e;font-size:13px;line-height:1.7}}
+strong{{color:#e6edf3}}
+</style>
+<div class="publish-wrap">
+{html}
+</div>
+"""
+    title = f.read_text().split("title:")[1].split("\n")[0].strip() if "title:" in f.read_text() else project_id
+    return shell(title, content, active=project_id, depth=1)
+
+
 # ── MAIN ───────────────────────────────────────────────────────────────────────
 
 def main():
     print("\nBuilding site...\n")
-    bt       = load_latest_backtest()
+    bt       = load_latest_backtest("crm_exit")
     strategy = load_strategy("crm_exit")
-    insights = load_insights()
+    insights = load_insights("crm_exit")
 
     if not bt:
-        print("  No backtest data found in content/backtests/"); return
+        print("  No backtest data found in content/projects/crm_exit/backtests/"); return
 
     # Index
     (DOCS / "index.html").write_text(build_index(bt, strategy))
@@ -636,6 +684,12 @@ def main():
     if insights:
         (DOCS / "insights" / "index.html").write_text(build_insights(insights))
         print("  ✓ insights/index.html")
+
+    # Publish pages
+    p = build_publish_page("3m_cross")
+    if p:
+        (DOCS / "strategy" / "3m_cross.html").write_text(p)
+        print("  ✓ strategy/3m_cross.html")
 
     print(f"\n  Site → {DOCS}/")
     print(f"  Push to GitHub → live at https://sameerbode.github.io/trading-research\n")
