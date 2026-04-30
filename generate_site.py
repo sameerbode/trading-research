@@ -111,6 +111,167 @@ def bucket_stats_from_bt(bt, direction=None):
             }
     return result
 
+# ── Interactive equity curve ───────────────────────────────────────────────────
+
+def build_interactive_equity_chart(bt_by_sym, uid="eq0", height=340):
+    """
+    Embed trade data + JS controls (symbol / direction / bucket) into the page.
+    bt_by_sym: {symbol: bt_json}  — works for 1 or 2 symbols.
+    uid must be alphanumeric (used as JS identifier prefix and HTML element id prefix).
+    """
+    symbols     = list(bt_by_sym.keys())
+    default_sym = symbols[0]
+    _COLORS = {"GC": "#3fb950", "CL": "#388bfd", "ES": "#f0883e", "NQ": "#bc8cff"}
+
+    def encode(bt):
+        if not bt: return []
+        closed = sorted([t for t in bt["trades"] if not t.get("open_end")],
+                        key=lambda x: x["entry_ts"])
+        return [[1 if t["bx_rising"] else 0,
+                 1 if t["wbx_rising"] else 0,
+                 1 if t["dir"] == "LONG" else 0,
+                 round(t["pnl"], 4)]
+                for t in closed]
+
+    data_js   = json.dumps({s: encode(bt) for s, bt in bt_by_sym.items()})
+    syms_js   = json.dumps(symbols)
+    def_js    = json.dumps(default_sym)
+    colors_js = json.dumps({s: _COLORS.get(s, "#58a6ff") for s in symbols})
+
+    # Symbol selector (only when > 1 symbol)
+    sym_html = ""
+    if len(symbols) > 1:
+        btns = "".join(
+            f'<button class="filter-btn sym-btn{"  active" if i == 0 else ""}" '
+            f"data-sym=\"{sym}\" onclick=\"eqSwitchSym{uid}('{sym}')\">{sym}</button>"
+            for i, sym in enumerate(symbols)
+        )
+        sym_html = (f'<div><div class="ctrl-label">Symbol</div>'
+                    f'<div style="display:flex;gap:6px">{btns}</div></div>')
+
+    bucket_names = ["D↑/W↑", "D↑/W↓", "D↓/W↑", "D↓/W↓"]
+    buckets_html = "".join(
+        f'<label class="bucket-label">'
+        f'<input type="checkbox" class="bucket-cb" id="{uid}bc{i}" data-bi="{i}" checked '
+        f"onchange=\"eqToggleBucket{uid}({i})\"> {bl}</label>"
+        for i, bl in enumerate(bucket_names)
+    )
+
+    # JS written as a regular string; __UID__ replaced afterwards to avoid f-string brace wars
+    js_raw = r"""(function(){
+  var UID='__UID__', DATA=__DATA__, SYMS=__SYMS__, COLORS=__COLORS__;
+  var state={};
+  SYMS.forEach(function(s){ state[s]={dir:'both', buckets:[1,1,1,1]}; });
+  var cur=__DEF__;
+
+  function bucketIdx(d,w){ return d&&w?0 : d&&!w?1 : !d&&w?2 : 3; }
+
+  function getFiltered(sym){
+    var s=state[sym];
+    return DATA[sym].filter(function(t){
+      if(!s.buckets[bucketIdx(t[0],t[1])]) return false;
+      if(s.dir==='long'  && !t[2]) return false;
+      if(s.dir==='short' &&  t[2]) return false;
+      return true;
+    });
+  }
+
+  function render(){
+    var trades=getFiltered(cur), cum=0;
+    var y=trades.map(function(t){ cum+=t[3]; return +cum.toFixed(4); });
+    var x=Array.from({length:y.length}, function(_,i){ return i+1; });
+    var col=COLORS[cur];
+    Plotly.react(UID+'-chart', [{
+      x:x, y:y, type:'scatter', mode:'lines', name:cur,
+      line:{color:col, width:2},
+      fill:'tozeroy', fillcolor:col+'14',
+      hovertemplate:'Trade %{x}<br>Cum PnL: %{y:.2f}%<extra>'+cur+'</extra>'
+    }], {
+      paper_bgcolor:'#161b22', plot_bgcolor:'#161b22',
+      font:{family:'Inter,sans-serif', color:'#e6edf3', size:12},
+      margin:{l:44, r:16, t:12, b:40},
+      xaxis:{title:'Trade #', gridcolor:'#21262d', zerolinecolor:'#30363d'},
+      yaxis:{ticksuffix:'%',  gridcolor:'#21262d', zerolinecolor:'#30363d'},
+      shapes:[{type:'line', x0:0, x1:1, xref:'paper', y0:0, y1:0,
+               line:{color:'#30363d', width:1}}],
+      showlegend:false
+    }, {responsive:true, displayModeBar:false});
+
+    var n=trades.length;
+    var wins=trades.filter(function(t){ return t[3]>0; }).length;
+    var total=trades.reduce(function(s,t){ return s+t[3]; }, 0);
+    document.getElementById(UID+'-n').textContent  = n.toLocaleString();
+    document.getElementById(UID+'-wr').textContent = n>0 ? (wins/n*100).toFixed(1)+'%' : '—';
+    var pnlEl=document.getElementById(UID+'-pnl');
+    pnlEl.textContent  = (total>=0?'+':'')+total.toFixed(2)+'%';
+    pnlEl.style.color  = total>=0 ? '#3fb950' : '#f85149';
+  }
+
+  function syncUI(){
+    var s=state[cur];
+    var wrap=document.getElementById(UID+'-wrap');
+    wrap.querySelectorAll('.sym-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.sym===cur);
+    });
+    wrap.querySelectorAll('.dir-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.dir===s.dir);
+    });
+    [0,1,2,3].forEach(function(i){
+      var cb=document.getElementById(UID+'bc'+i);
+      if(cb) cb.checked=!!s.buckets[i];
+    });
+  }
+
+  window['eqSwitchSym'+UID]    = function(sym){ cur=sym; syncUI(); render(); };
+  window['eqSetDir'+UID]        = function(dir){ state[cur].dir=dir; syncUI(); render(); };
+  window['eqToggleBucket'+UID]  = function(idx){ state[cur].buckets[idx]=state[cur].buckets[idx]?0:1; render(); };
+
+  if(typeof Plotly!=='undefined'){ render(); } else { window.addEventListener('load', render); }
+})();"""
+
+    js = (js_raw
+          .replace("__DATA__",   data_js)
+          .replace("__SYMS__",   syms_js)
+          .replace("__COLORS__", colors_js)
+          .replace("__DEF__",    def_js)
+          .replace("__UID__",    uid))
+
+    return f"""<div id="{uid}-wrap">
+<style>
+.filter-btn{{background:#21262d;border:1px solid #30363d;border-radius:6px;color:#8b949e;font:500 12px 'Inter',sans-serif;padding:5px 12px;cursor:pointer;transition:all .15s}}
+.filter-btn:hover{{color:#e6edf3;border-color:#8b949e}}
+.filter-btn.active{{background:#388bfd20;border-color:#388bfd;color:#58a6ff}}
+.ctrl-label{{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#8b949e;margin-bottom:6px}}
+.bucket-label{{display:flex;align-items:center;gap:6px;font-size:13px;color:#8b949e;cursor:pointer;user-select:none}}
+.bucket-label input{{cursor:pointer;accent-color:#388bfd;width:14px;height:14px}}
+</style>
+<div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap">
+  {sym_html}
+  <div>
+    <div class="ctrl-label">Direction</div>
+    <div style="display:flex;gap:6px">
+      <button class="filter-btn dir-btn active" data-dir="both"  onclick="eqSetDir{uid}('both')">Both</button>
+      <button class="filter-btn dir-btn"        data-dir="long"  onclick="eqSetDir{uid}('long')">Long</button>
+      <button class="filter-btn dir-btn"        data-dir="short" onclick="eqSetDir{uid}('short')">Short</button>
+    </div>
+  </div>
+  <div>
+    <div class="ctrl-label">Buckets</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">{buckets_html}</div>
+  </div>
+  <div style="margin-left:auto;padding-top:2px">
+    <div class="ctrl-label">Stats</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">
+      <span style="color:#8b949e">Trades <strong id="{uid}-n"   style="color:#e6edf3">—</strong></span>
+      <span style="color:#8b949e">Win Rate <strong id="{uid}-wr" style="color:#e6edf3">—</strong></span>
+      <span style="color:#8b949e">PnL <strong id="{uid}-pnl">—</strong></span>
+    </div>
+  </div>
+</div>
+<div id="{uid}-chart" style="height:{height}px"></div>
+<script>{js}</script>
+</div>"""
+
 # ── HTML shell ─────────────────────────────────────────────────────────────────
 
 def shell(title, content, active="home", depth=0):
@@ -337,23 +498,11 @@ def build_index(bt_crm, strategy, gc_bt, cl_bt):
     fig4.update_layout(barmode="group", yaxis_ticksuffix="%")
     chart_3m_buckets = fig_to_div(fig4, "chart-3m-buckets", 360)
 
-    # ── Chart 5: 3Min Cross — equity curves GC + CL ───────────────────────────
-    fig5 = go.Figure()
-    for sym, bt, col in [("GC", gc_bt, "#3fb950"), ("CL", cl_bt, "#388bfd")]:
-        if not bt: continue
-        closed = sorted([t for t in bt["trades"] if not t.get("open_end")],
-                        key=lambda x: x["entry_ts"])
-        cum = []; running = 0
-        for t in closed:
-            running += t["pnl"]; cum.append(round(running, 3))
-        fig5.add_trace(go.Scatter(
-            x=list(range(1, len(cum)+1)), y=cum, name=sym,
-            line=dict(color=col, width=2),
-            hovertemplate=f"<b>{sym}</b><br>Trade %{{x}}<br>Cum PnL: %{{y:.2f}}%<extra></extra>"))
-    fig5.add_hline(y=0, line_color="#30363d", line_width=1)
-    fig5.update_layout(xaxis_title="Trade #", yaxis_ticksuffix="%", showlegend=True,
-                       legend=dict(orientation="h", y=1.1))
-    chart_3m_equity = fig_to_div(fig5, "chart-3m-equity", 300)
+    # ── Interactive equity curve (GC + CL, filters per symbol) ───────────────
+    interactive_eq = build_interactive_equity_chart(
+        {sym: bt for sym, bt in [("GC", gc_bt), ("CL", cl_bt)] if bt},
+        uid="eqdash", height=340
+    )
 
     # ── CRM Exit summary table ─────────────────────────────────────────────────
     crm_rows = ""
@@ -375,7 +524,7 @@ def build_index(bt_crm, strategy, gc_bt, cl_bt):
     def futures_card(sym, s):
         if not s: return '<div class="card"><div class="card-title">—</div></div>'
         sc = color(s.get("total_pnl")); wrc = "#3fb950" if s.get("win_rate",0)>=50 else "#f85149"
-        pf_v = s.get("pf"); dw = s.get("data_window", bt["data_window"] if bt else "")
+        pf_v = s.get("pf")
         return f"""<div class="card">
           <div class="card-title">3Min Cross — {sym}</div>
           <div class="card-value" style="color:{sc}">{pct(s.get('total_pnl'))}</div>
@@ -440,9 +589,9 @@ def build_index(bt_crm, strategy, gc_bt, cl_bt):
 </div>
 
 <div class="chart-card">
-  <div class="chart-title">Cumulative Equity Curve — All Trades (no filter)</div>
-  <div class="chart-sub">Every EMA34/50 cross taken, both directions, 10-year window</div>
-  {chart_3m_equity}
+  <div class="chart-title">Cumulative Equity Curve — Interactive</div>
+  <div class="chart-sub">Each symbol keeps its own direction &amp; bucket settings independently</div>
+  {interactive_eq}
 </div>
 """
     return shell("Dashboard", content, active="home", depth=0)
@@ -607,20 +756,10 @@ def build_futures_ticker(symbol, bt):
 
     BUCKET_LABELS = ["D↑/W↑", "D↑/W↓", "D↓/W↑", "D↓/W↓"]
 
-    # ── Equity curve ──────────────────────────────────────────────────────────
-    cum = []; running = 0
-    for t in closed:
-        running += t["pnl"]; cum.append(round(running, 3))
-
-    fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(
-        x=list(range(1, len(cum)+1)), y=cum, name="Cumulative PnL %",
-        line=dict(color="#3fb950", width=2), fill="tozeroy",
-        fillcolor="rgba(63,185,80,0.08)",
-        hovertemplate="Trade %{x}<br>Cumulative: %{y:.2f}%<extra></extra>"))
-    fig1.add_hline(y=0, line_color="#30363d", line_width=1)
-    fig1.update_layout(xaxis_title="Trade #", yaxis_ticksuffix="%")
-    chart1 = fig_to_div(fig1, f"chart-equity-{symbol}", 300)
+    # ── Interactive equity curve ───────────────────────────────────────────────
+    chart1 = build_interactive_equity_chart(
+        {symbol: bt}, uid=f"eq{symbol.lower()}", height=320
+    )
 
     # ── Bucket PnL bar chart (longs and shorts side by side) ──────────────────
     long_b  = bucket_stats_from_bt(bt, "LONG")
@@ -704,8 +843,8 @@ def build_futures_ticker(symbol, bt):
 </div>
 
 <div class="chart-card">
-  <div class="chart-title">Cumulative Equity Curve — All Trades</div>
-  <div class="chart-sub">Every EMA34/50 cross taken, both directions, unfiltered</div>
+  <div class="chart-title">Cumulative Equity Curve — Interactive</div>
+  <div class="chart-sub">Filter by direction and bucket combination to explore trade subsets</div>
   {chart1}
 </div>
 
