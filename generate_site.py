@@ -118,6 +118,8 @@ def build_interactive_equity_chart(bt_by_sym, uid="eq0", height=340):
     Embed trade data + JS controls (symbol / direction / bucket) into the page.
     bt_by_sym: {symbol: bt_json}  — works for 1 or 2 symbols.
     uid must be alphanumeric (used as JS identifier prefix and HTML element id prefix).
+    When multiple symbols are present a "Both" option renders both traces simultaneously,
+    each symbol keeping its own independent direction/bucket settings.
     """
     symbols     = list(bt_by_sym.keys())
     default_sym = symbols[0]
@@ -138,7 +140,7 @@ def build_interactive_equity_chart(bt_by_sym, uid="eq0", height=340):
     def_js    = json.dumps(default_sym)
     colors_js = json.dumps({s: _COLORS.get(s, "#58a6ff") for s in symbols})
 
-    # Symbol selector (only when > 1 symbol)
+    # Symbol selector — shown when > 1 symbol; includes a "Both" button
     sym_html = ""
     if len(symbols) > 1:
         btns = "".join(
@@ -146,6 +148,8 @@ def build_interactive_equity_chart(bt_by_sym, uid="eq0", height=340):
             f"data-sym=\"{sym}\" onclick=\"eqSwitchSym{uid}('{sym}')\">{sym}</button>"
             for i, sym in enumerate(symbols)
         )
+        btns += (f'<button class="filter-btn sym-btn" data-sym="both" '
+                 f"onclick=\"eqSwitchSym{uid}('both')\">Both</button>")
         sym_html = (f'<div><div class="ctrl-label">Symbol</div>'
                     f'<div style="display:flex;gap:6px">{btns}</div></div>')
 
@@ -157,18 +161,21 @@ def build_interactive_equity_chart(bt_by_sym, uid="eq0", height=340):
         for i, bl in enumerate(bucket_names)
     )
 
-    # JS written as a regular string; __UID__ replaced afterwards to avoid f-string brace wars
+    # JS written as a regular string; __PLACEHOLDERS__ replaced afterwards
+    # "both" mode: each symbol uses its own stored state; direction/bucket controls
+    # update the currently-active symbol's state (or the shared 'both' slot isn't used —
+    # the controls are per-symbol, remembered independently).
     js_raw = r"""(function(){
   var UID='__UID__', DATA=__DATA__, SYMS=__SYMS__, COLORS=__COLORS__;
   var state={};
   SYMS.forEach(function(s){ state[s]={dir:'both', buckets:[1,1,1,1]}; });
+  // 'both' view uses each symbol's own state — no shared slot needed.
   var cur=__DEF__;
 
   function bucketIdx(d,w){ return d&&w?0 : d&&!w?1 : !d&&w?2 : 3; }
 
-  function getFiltered(sym){
-    var s=state[sym];
-    return DATA[sym].filter(function(t){
+  function applyFilter(trades, s){
+    return trades.filter(function(t){
       if(!s.buckets[bucketIdx(t[0],t[1])]) return false;
       if(s.dir==='long'  && !t[2]) return false;
       if(s.dir==='short' &&  t[2]) return false;
@@ -176,55 +183,98 @@ def build_interactive_equity_chart(bt_by_sym, uid="eq0", height=340):
     });
   }
 
-  function render(){
-    var trades=getFiltered(cur), cum=0;
-    var y=trades.map(function(t){ cum+=t[3]; return +cum.toFixed(4); });
-    var x=Array.from({length:y.length}, function(_,i){ return i+1; });
-    var col=COLORS[cur];
-    Plotly.react(UID+'-chart', [{
-      x:x, y:y, type:'scatter', mode:'lines', name:cur,
-      line:{color:col, width:2},
-      fill:'tozeroy', fillcolor:col+'14',
-      hovertemplate:'Trade %{x}<br>Cum PnL: %{y:.2f}%<extra>'+cur+'</extra>'
-    }], {
-      paper_bgcolor:'#161b22', plot_bgcolor:'#161b22',
-      font:{family:'Inter,sans-serif', color:'#e6edf3', size:12},
-      margin:{l:44, r:16, t:12, b:40},
-      xaxis:{title:'Trade #', gridcolor:'#21262d', zerolinecolor:'#30363d'},
-      yaxis:{ticksuffix:'%',  gridcolor:'#21262d', zerolinecolor:'#30363d'},
-      shapes:[{type:'line', x0:0, x1:1, xref:'paper', y0:0, y1:0,
-               line:{color:'#30363d', width:1}}],
-      showlegend:false
-    }, {responsive:true, displayModeBar:false});
-
-    var n=trades.length;
-    var wins=trades.filter(function(t){ return t[3]>0; }).length;
-    var total=trades.reduce(function(s,t){ return s+t[3]; }, 0);
-    document.getElementById(UID+'-n').textContent  = n.toLocaleString();
-    document.getElementById(UID+'-wr').textContent = n>0 ? (wins/n*100).toFixed(1)+'%' : '—';
-    var pnlEl=document.getElementById(UID+'-pnl');
-    pnlEl.textContent  = (total>=0?'+':'')+total.toFixed(2)+'%';
-    pnlEl.style.color  = total>=0 ? '#3fb950' : '#f85149';
+  function symStats(sym){
+    var t=applyFilter(DATA[sym], state[sym]);
+    var n=t.length, w=t.filter(function(x){return x[3]>0;}).length;
+    var p=t.reduce(function(s,x){return s+x[3];},0);
+    return {trades:t, n:n, wr:n>0?(w/n*100).toFixed(1)+'%':'—',
+            pnl:p, pnlStr:(p>=0?'+':'')+p.toFixed(2)+'%',
+            pnlColor:p>=0?'#3fb950':'#f85149'};
   }
 
+  var LAYOUT={
+    paper_bgcolor:'#161b22', plot_bgcolor:'#161b22',
+    font:{family:'Inter,sans-serif', color:'#e6edf3', size:12},
+    margin:{l:44, r:16, t:12, b:40},
+    xaxis:{title:'Trade #', gridcolor:'#21262d', zerolinecolor:'#30363d'},
+    yaxis:{ticksuffix:'%',  gridcolor:'#21262d', zerolinecolor:'#30363d'},
+    shapes:[{type:'line', x0:0, x1:1, xref:'paper', y0:0, y1:0,
+             line:{color:'#30363d', width:1}}]
+  };
+
+  function render(){
+    var traces=[], statsHtml='';
+
+    if(cur==='both'){
+      SYMS.forEach(function(sym){
+        var st=symStats(sym), cum=0;
+        var y=st.trades.map(function(t){cum+=t[3];return+cum.toFixed(4);});
+        var x=Array.from({length:y.length},function(_,i){return i+1;});
+        traces.push({x:x,y:y,type:'scatter',mode:'lines',name:sym,
+          line:{color:COLORS[sym],width:2},
+          hovertemplate:'Trade %{x}<br>Cum PnL: %{y:.2f}%<extra>'+sym+'</extra>'});
+        statsHtml+='<span style="color:#8b949e">'+sym
+          +' <strong style="color:#e6edf3">'+st.n.toLocaleString()+'</strong> trades'
+          +' · <strong style="color:#e6edf3">'+st.wr+'</strong> WR'
+          +' · <strong style="color:'+st.pnlColor+'">'+st.pnlStr+'</strong></span>'
+          +'<span style="color:#30363d;padding:0 10px">|</span>';
+      });
+      statsHtml=statsHtml.replace(/<span[^>]*>\|<\/span>$/,''); // trim trailing |
+      LAYOUT.showlegend=true;
+      LAYOUT.legend={orientation:'h',y:1.08,bgcolor:'rgba(0,0,0,0)'};
+    } else {
+      var st=symStats(cur), cum=0;
+      var y=st.trades.map(function(t){cum+=t[3];return+cum.toFixed(4);});
+      var x=Array.from({length:y.length},function(_,i){return i+1;});
+      var col=COLORS[cur];
+      traces.push({x:x,y:y,type:'scatter',mode:'lines',name:cur,
+        line:{color:col,width:2},fill:'tozeroy',fillcolor:col+'14',
+        hovertemplate:'Trade %{x}<br>Cum PnL: %{y:.2f}%<extra>'+cur+'</extra>'});
+      statsHtml='<span style="color:#8b949e">Trades <strong style="color:#e6edf3">'+st.n.toLocaleString()+'</strong></span>'
+        +'<span style="color:#8b949e">Win Rate <strong style="color:#e6edf3">'+st.wr+'</strong></span>'
+        +'<span style="color:#8b949e">PnL <strong style="color:'+st.pnlColor+'">'+st.pnlStr+'</strong></span>';
+      LAYOUT.showlegend=false;
+      delete LAYOUT.legend;
+    }
+
+    Plotly.react(UID+'-chart', traces, LAYOUT, {responsive:true,displayModeBar:false});
+    document.getElementById(UID+'-statsrow').innerHTML=statsHtml;
+  }
+
+  function curState(){ return cur==='both' ? null : state[cur]; }
+
   function syncUI(){
-    var s=state[cur];
+    var s=curState();
     var wrap=document.getElementById(UID+'-wrap');
     wrap.querySelectorAll('.sym-btn').forEach(function(b){
       b.classList.toggle('active', b.dataset.sym===cur);
     });
-    wrap.querySelectorAll('.dir-btn').forEach(function(b){
-      b.classList.toggle('active', b.dataset.dir===s.dir);
-    });
-    [0,1,2,3].forEach(function(i){
-      var cb=document.getElementById(UID+'bc'+i);
-      if(cb) cb.checked=!!s.buckets[i];
-    });
+    // In 'both' mode keep the dir/bucket controls showing last single-sym state
+    // (controls still work — they update whichever single symbol was last active)
+    if(s){
+      wrap.querySelectorAll('.dir-btn').forEach(function(b){
+        b.classList.toggle('active', b.dataset.dir===s.dir);
+      });
+      [0,1,2,3].forEach(function(i){
+        var cb=document.getElementById(UID+'bc'+i);
+        if(cb) cb.checked=!!s.buckets[i];
+      });
+    }
   }
 
-  window['eqSwitchSym'+UID]    = function(sym){ cur=sym; syncUI(); render(); };
-  window['eqSetDir'+UID]        = function(dir){ state[cur].dir=dir; syncUI(); render(); };
-  window['eqToggleBucket'+UID]  = function(idx){ state[cur].buckets[idx]=state[cur].buckets[idx]?0:1; render(); };
+  // When in 'both' mode, direction/bucket changes affect the LAST selected single symbol
+  var lastSingle=__DEF__;
+
+  window['eqSwitchSym'+UID] = function(sym){
+    if(sym!=='both') lastSingle=sym;
+    cur=sym; syncUI(); render();
+  };
+  window['eqSetDir'+UID] = function(dir){
+    state[lastSingle].dir=dir; syncUI(); render();
+  };
+  window['eqToggleBucket'+UID] = function(idx){
+    state[lastSingle].buckets[idx]=state[lastSingle].buckets[idx]?0:1; render();
+  };
 
   if(typeof Plotly!=='undefined'){ render(); } else { window.addEventListener('load', render); }
 })();"""
@@ -261,11 +311,7 @@ def build_interactive_equity_chart(bt_by_sym, uid="eq0", height=340):
   </div>
   <div style="margin-left:auto;padding-top:2px">
     <div class="ctrl-label">Stats</div>
-    <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">
-      <span style="color:#8b949e">Trades <strong id="{uid}-n"   style="color:#e6edf3">—</strong></span>
-      <span style="color:#8b949e">Win Rate <strong id="{uid}-wr" style="color:#e6edf3">—</strong></span>
-      <span style="color:#8b949e">PnL <strong id="{uid}-pnl">—</strong></span>
-    </div>
+    <div id="{uid}-statsrow" style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">—</div>
   </div>
 </div>
 <div id="{uid}-chart" style="height:{height}px"></div>
