@@ -24,14 +24,14 @@ No additional entry filter applied in V1.0. Always in market — every cross fli
 ### Exit
 Opposite 3-minute EMA34/50 cross.
 
-### Indicators (analysis only — not used as entry filters)
-**Daily BX** and **Weekly BX** were calculated and attached to each trade for post-trade analysis.
+### Indicators (analysis only — not used as entry filters in V1.0)
 
 ```
 BX = RSI( EMA(close, 5) - EMA(close, 20), 5 ) - 50
 ```
 
-- Oscillates around 0. Positive = bullish momentum, negative = bearish.
+Oscillates around 0. Positive = bullish momentum, negative = bearish.
+
 - **Daily BX** — calculated on CME session closes (5 PM CT open → 4 PM CT close).
   Each bar uses the prior completed session's BX. No lookahead.
 - **Weekly BX** — same formula on weekly closes (week ending Friday 4 PM CT).
@@ -42,8 +42,8 @@ BX = RSI( EMA(close, 5) - EMA(close, 20), 5 ) - 50
 
 ## V1.0 Overall Results
 
-**Period:** Sep 1 2025 – Mar 31 2026
-**Bars:** 202,708 one-minute bars (67,569 three-minute bars)
+**Period:** Sep 1 2025 – Mar 31 2026  
+**Bars:** 202,708 one-minute → 67,569 three-minute bars
 
 | Metric | Value |
 |---|---|
@@ -56,10 +56,8 @@ BX = RSI( EMA(close, 5) - EMA(close, 20), 5 ) - 50
 | Profit Factor | 1.225 |
 
 ### How to read the win rate
-30% win rate is expected for this type of strategy. The cross fires frequently —
-many are false moves that get stopped by the next cross quickly (-12 pts avg).
-The strategy profits because the occasional sustained move generates large wins
-(+37 pts avg), covering roughly 3 small losses per win.
+
+30% win rate is expected for a cross-based strategy. The cross fires frequently — many are false moves that reverse quickly (avg loss ~12 pts). The strategy profits because the occasional sustained move generates large wins (avg win ~37 pts), covering roughly 3 small losses per win.
 
 Per 3 trades on average:
 ```
@@ -69,12 +67,18 @@ Per 3 trades on average:
 Net                = +13 pts  →  positive EV
 ```
 
+For GC: 1 point = $100/contract.
+
 ---
 
 ## BX Direction Breakdown
 
 Trades broken down by daily BX direction × weekly BX direction at time of entry.
-**D↑** = daily BX rising, **D↓** = daily BX falling, **W↑** = weekly BX rising, **W↓** = weekly BX falling.
+
+- **D↑** = daily BX rising (daily momentum building)
+- **D↓** = daily BX falling (daily momentum decaying)
+- **W↑** = weekly BX rising (weekly momentum building)
+- **W↓** = weekly BX falling (weekly momentum decaying)
 
 ```
 ────────────────────────────────────────────────────────────────────────────────────────────
@@ -92,41 +96,101 @@ Trades broken down by daily BX direction × weekly BX direction at time of entry
 
 ---
 
-## Key Observations
+## What Each Bucket Means
 
-**1. Weekly BX direction is the primary signal**
-The clearest pattern: weekly BX direction determines which side to trade.
-- **W↑ → longs only.** D↓/W↑ longs: 37.1% win rate, +13.80% PnL. Best bucket overall.
-  D↓/W↑ shorts: -2.22% PnL. Same setup, wrong direction.
-- **W↓ → shorts only.** D↓/W↓ shorts: 35.5% win rate, +7.55% PnL.
-  D↓/W↓ longs: essentially flat (-0.09%).
+**BX rising** — momentum is building. The EMA spread is widening. The move has energy.  
+**BX falling** — momentum is decaying. The EMA spread is narrowing. The move is losing steam.
 
-**2. Daily BX refines timing**
-Within the weekly direction, D↓ (daily BX falling = daily pullback) produces better entries
-than D↑ (daily BX rising = daily momentum extended).
-- D↓/W↑ longs: 37.1% win rate vs D↑/W↑ longs: 27.7%
-- D↓/W↓ shorts: 35.5% win rate vs D↑/W↓ shorts: 18.2%
+### W↑ (Weekly momentum rising)
 
-**3. D↑/W↓ shorts are the worst setup**
-Shorting when daily momentum is building against the weekly downtrend: 18.2% win rate, -2.53% PnL. Clear avoid.
+The weekly trend has energy. Price is in a sustained directional move on the higher timeframe.
+
+**D↓/W↑ → LONG. Best setup in the entire table.**
+- 37.1% win rate, +13.80% PnL
+- Weekly momentum still strong. Daily BX has pulled back — you're entering when the daily move has temporarily exhausted. The weekly trend reasserts and carries the trade. Classic pullback-in-an-uptrend.
+
+**D↑/W↑ → LONG. Acceptable.**
+- 27.7% win rate, +5.89% PnL
+- Weaker than D↓/W↑ because both timeframes are extended in the same direction. Less room to run before the trade needs to pause.
+
+**Any SHORT in W↑ → Avoid.**
+- D↓/W↑ SHORT: -2.22%. D↑/W↑ SHORT: +4.47% (marginal, unreliable).
+- You are fighting weekly momentum. Even when the daily is pulling back, the weekly reasserts and cuts the short.
+
+---
+
+### W↓ (Weekly momentum falling)
+
+The weekly trend is losing energy or heading lower. The dominant bias is bearish.
+
+**D↓/W↓ → SHORT. Best short setup.**
+- 35.5% win rate, +7.55% PnL
+- Both timeframes losing momentum together. Daily confirming the weekly. Trend continuation short.
+
+**D↑/W↓ → Skip entirely. Worst bucket.**
+- SHORT 18.2% win rate, -2.53%. LONG +2.33%.
+- Daily is rising while weekly is falling — two timeframes in disagreement. Neither direction has a clean edge. This is the noise bucket.
+
+**Any LONG in W↓ → Avoid.**
+- Buying into weekly weakness. Flat to negative in both D sub-buckets.
+
+---
+
+## Decision Tree
+
+```
+Is Weekly BX rising (W↑)?
+│
+├── YES — W↑
+│   │
+│   ├── Is Daily BX falling (D↓)?
+│   │   └── LONG on 3min EMA34/50 cross ← best setup (37.1% WR, PF ~1.6)
+│   │
+│   └── Is Daily BX rising (D↑)?
+│       └── LONG on 3min EMA34/50 cross ← acceptable (27.7% WR)
+│           (skip shorts in W↑ entirely)
+│
+└── NO — W↓
+    │
+    ├── Is Daily BX falling (D↓)?
+    │   └── SHORT on 3min EMA34/50 cross ← best short setup (35.5% WR, PF ~1.5)
+    │
+    └── Is Daily BX rising (D↑)?
+        └── SKIP — no edge in either direction (18.2% short WR, -2.53%)
+```
+
+---
+
+## Filtered Results — Best Buckets Only
+
+Applying the decision tree: take only D↓/W↑ longs and D↓/W↓ shorts.
+
+| | Trades | Win% | Total PnL | Est. PF |
+|---|---|---|---|---|
+| D↓/W↑ LONG | 89 | 37.1% | +13.80% | ~1.6 |
+| D↓/W↓ SHORT | 62 | 35.5% | +7.55% | ~1.5 |
+| **Combined** | **151** | **36.4%** | **+21.35%** | **~1.55** |
+
+- **~22 trades/month** on GC alone — manageable frequency
+- PF improves from 1.22 (unfiltered) to ~1.55 (filtered)
+- 50% reduction in trade count, capturing 73% of total unfiltered PnL
 
 ---
 
 ## Open Questions for V1.1
 
-- Does filtering entries to W↑ longs / W↓ shorts improve PF to a tradeable level (≥ 1.5)?
-- How many trades per month does a W-direction filter leave?
-- Does adding a hard stop (e.g. 15 pts) reduce avg loss without hurting win rate?
-- How do these results hold on CL?
-- Does this pattern hold across different market regimes (test 2022–2024)?
+1. Do these bucket patterns hold over 10 years (2016–2026) across different market regimes?
+2. Does the D↓/W↑ long / D↓/W↓ short filter hold on CL?
+3. Does adding a hard stop (e.g. 15 pts) reduce avg loss without hurting win rate?
+4. Can PF reach ≥ 1.5 consistently before considering live trading?
+5. How many consecutive losing trades at 36% win rate? Need to size accordingly.
 
 ---
 
 ## Notes
 
-- V1.0 is a characterisation run — no filters applied, all crosses taken.
-  Results establish the baseline and identify candidate filters for V1.1.
-- Daily and weekly BX use proper CME session closes (5 PM CT open / 4 PM CT close),
-  not calendar midnight. Bars at or after 5 PM CT are assigned to the next session.
+- V1.0 is a characterisation run — no filters applied, all crosses taken. Results establish the baseline and identify candidate filters for V1.1.
+- Daily and weekly BX use proper CME session closes (5 PM CT open / 4 PM CT close), not calendar midnight. Bars at or after 5 PM CT are assigned to the next session's date.
 - All BX values at entry use the prior completed session — no lookahead.
 - Points (AvgW / AvgL) are raw price points. For GC: 1 point = $100/contract.
+- Sep 2025 – Mar 2026 was a strong directional period for GC (gold bull run). Results need validation across neutral and bearish regimes.
