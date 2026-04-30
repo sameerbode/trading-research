@@ -349,9 +349,11 @@ def bx_breakdown(trades: list[dict]):
 
 
 if __name__ == "__main__":
-    args   = sys.argv[1:]
-    sym    = args[0] if args else "GC"
-    start  = args[1] if len(args) > 1 else None
-    end    = args[2] if len(args) > 2 else None
-    use_bx = "--no-bx" not in args
+    args      = sys.argv[1:]
+    flags     = [a for a in args if a.startswith("--")]
+    positional = [a for a in args if not a.startswith("--")]
+    sym    = positional[0] if len(positional) > 0 else "GC"
+    start  = positional[1] if len(positional) > 1 else None
+    end    = positional[2] if len(positional) > 2 else None
+    use_bx = "--no-bx" not in flags
     run(sym, start, end, use_bx=use_bx)
